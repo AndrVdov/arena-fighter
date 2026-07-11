@@ -1,0 +1,13 @@
+# Local editor and assistant settings
+.claude/settings.local.json
+
+# Temporary generated files
+tmp/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log

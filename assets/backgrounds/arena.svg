@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+
+  <!-- ================= ФОН АРЕНИ (КОЛІЗЕЙ) =================
+       Композиція: небо на заході сонця → верхня трибуна з натовпом →
+       ярус арок із центральними воротами → піщана арена з орнаментом.
+       Прапори, вогняні чаші та віньєтка — для атмосфери. -->
+
+  <defs>
+    <!-- Небо: присмеркове, тепле біля обрію -->
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#241812"/>
+      <stop offset="0.6" stop-color="#3a2417"/>
+      <stop offset="1"   stop-color="#59331c"/>
+    </linearGradient>
+
+    <!-- Камінь трибун -->
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6b5a44"/>
+      <stop offset="1" stop-color="#463828"/>
+    </linearGradient>
+
+    <linearGradient id="stoneDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#524232"/>
+      <stop offset="1" stop-color="#352a1e"/>
+    </linearGradient>
+
+    <!-- Пісок арени: світлий центр, темніші краї -->
+    <radialGradient id="sand" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0"   stop-color="#cfa768"/>
+      <stop offset="0.6" stop-color="#b08a4e"/>
+      <stop offset="1"   stop-color="#7d6136"/>
+    </radialGradient>
+
+    <!-- Сяйво вогню -->
+    <radialGradient id="fireGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="#ffb84d" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="#ffb84d" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Затемнення країв кадру -->
+    <radialGradient id="vignette" cx="0.5" cy="0.55" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#000" stop-opacity="0.7"/>
+    </radialGradient>
+
+    <!-- Натовп: два ряди голів-крапок -->
+    <pattern id="crowd" width="26" height="22" patternUnits="userSpaceOnUse">
+      <rect width="26" height="22" fill="#3a2b1c"/>
+      <circle cx="7"  cy="8"  r="5" fill="#28190f"/>
+      <circle cx="20" cy="15" r="5" fill="#31210f"/>
+    </pattern>
+
+    <!-- Аркада: повторювана арка -->
+    <pattern id="arches" width="96" height="200" patternUnits="userSpaceOnUse">
+      <rect width="96" height="200" fill="url(#stoneDark)"/>
+      <path d="M18 200 V96 Q48 52 78 96 V200 Z" fill="#191007"/>
+      <rect x="14" width="4" height="200" fill="#2e2416"/>
+    </pattern>
+  </defs>
+
+  <!-- Небо та бліде сонце в серпанку -->
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1180" cy="150" r="55" fill="#e8c078" opacity="0.35"/>
+  <circle cx="1180" cy="150" r="95" fill="#e8c078" opacity="0.12"/>
+
+  <!-- Верхній обід стіни колізею -->
+  <path d="M0 272 Q800 138 1600 272 L1600 312 Q800 178 0 312 Z" fill="url(#stoneDark)"/>
+
+  <!-- Трибуна з натовпом (вигнута стрічка) -->
+  <path d="M0 312 Q800 178 1600 312 L1600 444 Q800 312 0 444 Z" fill="url(#crowd)"/>
+
+  <!-- Ярус арок -->
+  <path d="M0 444 Q800 312 1600 444 L1600 660 Q800 520 0 660 Z" fill="url(#arches)"/>
+  <!-- Тінь під трибуною, що відділяє яруси -->
+  <path d="M0 444 Q800 312 1600 444 L1600 460 Q800 328 0 460 Z" fill="#1c130c" opacity="0.8"/>
+
+  <!-- Центральні ворота з ґратами -->
+  <g>
+    <path d="M700 620 V420 Q800 330 900 420 V620 Z" fill="#57462f"/>
+    <path d="M718 620 V430 Q800 350 882 430 V620 Z" fill="#0f0a05"/>
+    <!-- ґрати -->
+    <g stroke="#4a3a20" stroke-width="7">
+      <line x1="748" y1="400" x2="748" y2="620"/>
+      <line x1="782" y1="382" x2="782" y2="620"/>
+      <line x1="818" y1="382" x2="818" y2="620"/>
+      <line x1="852" y1="400" x2="852" y2="620"/>
+      <line x1="722" y1="470" x2="878" y2="470"/>
+      <line x1="722" y1="545" x2="878" y2="545"/>
+    </g>
+    <!-- емблема над ворітьми -->
+    <circle cx="800" cy="392" r="26" fill="#8f6f1c" stroke="#5c4712" stroke-width="4"/>
+    <circle cx="800" cy="392" r="13" fill="#c9a227"/>
+  </g>
+
+  <!-- Прапори на стіні -->
+  <g fill="#8f2318">
+    <path d="M170 320 h64 v118 l-32 -20 l-32 20 Z"/>
+    <path d="M470 300 h64 v118 l-32 -20 l-32 20 Z"/>
+    <path d="M1066 300 h64 v118 l-32 -20 l-32 20 Z"/>
+    <path d="M1366 320 h64 v118 l-32 -20 l-32 20 Z"/>
+  </g>
+  <g fill="#c9a227" opacity="0.85">
+    <circle cx="202" cy="368" r="12"/>
+    <circle cx="502" cy="348" r="12"/>
+    <circle cx="1098" cy="348" r="12"/>
+    <circle cx="1398" cy="368" r="12"/>
+  </g>
+
+  <!-- Пісок арени -->
+  <ellipse cx="800" cy="1000" rx="1150" ry="480" fill="url(#sand)"/>
+
+  <!-- Орнамент у центрі арени -->
+  <g fill="none" stroke="#8a683a" opacity="0.7">
+    <ellipse cx="800" cy="760" rx="210" ry="88" stroke-width="6"/>
+    <ellipse cx="800" cy="760" rx="140" ry="58" stroke-width="3"/>
+    <ellipse cx="800" cy="760" rx="40"  ry="16" stroke-width="3"/>
+  </g>
+
+  <!-- Сліди старих боїв -->
+  <g fill="#6d2418" opacity="0.16">
+    <ellipse cx="560"  cy="700" rx="48" ry="14"/>
+    <ellipse cx="1030" cy="800" rx="60" ry="16"/>
+    <ellipse cx="760"  cy="852" rx="36" ry="11"/>
+  </g>
+
+  <!-- Вогняні чаші обабіч арени -->
+  <g>
+    <!-- ліва -->
+    <circle cx="255" cy="585" r="105" fill="url(#fireGlow)"/>
+    <rect x="240" y="620" width="30" height="115" fill="#3d2f1e"/>
+    <path d="M205 620 h100 l-14 -34 h-72 Z" fill="#57462f"/>
+    <path d="M255 528 q-26 34 -8 58 q8 12 -6 26 q30 8 42 -14 q16 -30 -28 -70 Z" fill="#e07820"/>
+    <path d="M255 552 q-13 22 -2 38 q5 9 -3 16 q18 4 24 -10 q8 -18 -19 -44 Z" fill="#f5c04a"/>
+    <!-- права -->
+    <circle cx="1345" cy="585" r="105" fill="url(#fireGlow)"/>
+    <rect x="1330" y="620" width="30" height="115" fill="#3d2f1e"/>
+    <path d="M1295 620 h100 l-14 -34 h-72 Z" fill="#57462f"/>
+    <path d="M1345 528 q-26 34 -8 58 q8 12 -6 26 q30 8 42 -14 q16 -30 -28 -70 Z" fill="#e07820"/>
+    <path d="M1345 552 q-13 22 -2 38 q5 9 -3 16 q18 4 24 -10 q8 -18 -19 -44 Z" fill="#f5c04a"/>
+  </g>
+
+  <!-- Віньєтка -->
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+</svg>

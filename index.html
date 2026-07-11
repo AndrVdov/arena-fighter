@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arena Fighter</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- HUD игрока, кнопки под ним и панель активных эффектов справа -->
+  <div id="hud-wrap">
+    <header id="hud"></header>
+    <nav id="hud-actions"></nav>
+    <aside id="effects-bar"></aside>
+  </div>
+
+  <!-- Кнопка выхода на глобальную карту -->
+  <nav id="map-button"></nav>
+
+  <!-- Кнопка выхода в главное меню (шестерёнка) -->
+  <nav id="menu-button"></nav>
+
+  <!-- Текущий экран (дом / арена / магазин / меню) -->
+  <main id="screen"></main>
+
+  <!-- Всплывающие сообщения -->
+  <div id="toast"></div>
+
+  <!-- ДАННЫЕ: контент игры, читаемый человеком -->
+  <script src="js/data/balance.js"></script>
+  <script src="js/data/locations.js"></script>
+  <script src="js/data/races.js"></script>
+  <script src="js/data/elites.js"></script>
+  <script src="js/data/attack-names.js"></script>
+  <script src="js/data/items.js"></script>
+  <script src="js/data/shop.js"></script>
+
+  <!-- СУЩНОСТИ -->
+  <script src="js/entities/Item.js"></script>
+  <script src="js/entities/Inventory.js"></script>
+  <script src="js/entities/Chest.js"></script>
+  <script src="js/entities/Fighter.js"></script>
+  <script src="js/entities/ShopStock.js"></script>
+  <script src="js/entities/Enemy.js"></script>
+  <script src="js/entities/ArenaLineup.js"></script>
+  <script src="js/entities/Player.js"></script>
+
+  <!-- СИСТЕМЫ -->
+  <script src="js/systems/SaveManager.js"></script>
+  <script src="js/systems/Needs.js"></script>
+  <script src="js/systems/Drops.js"></script>
+  <script src="js/systems/Combat.js"></script>
+
+  <!-- ИНТЕРФЕЙС -->
+  <script src="js/ui/ItemRow.js"></script>
+  <script src="js/ui/Hud.js"></script>
+  <script src="js/ui/EffectsBar.js"></script>
+  <script src="js/ui/Screen.js"></script>
+  <script src="js/ui/Modal.js"></script>
+  <script src="js/ui/TravelOverlay.js"></script>
+  <script src="js/ui/StatsModal.js"></script>
+  <script src="js/ui/InventoryModal.js"></script>
+  <script src="js/ui/EquipmentModal.js"></script>
+  <script src="js/ui/ActionModal.js"></script>
+  <script src="js/ui/RestModal.js"></script>
+  <script src="js/ui/SleepModal.js"></script>
+  <script src="js/ui/MenuScreen.js"></script>
+  <script src="js/ui/WorldMapModal.js"></script>
+  <script src="js/ui/HomeScreen.js"></script>
+  <script src="js/ui/ArenaScreen.js"></script>
+  <script src="js/ui/ShopScreen.js"></script>
+  <script src="js/ui/StorageScreen.js"></script>
+
+  <!-- ИГРА -->
+  <script src="js/Game.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      window.game = new Game();
+      window.game.start();
+    });
+  </script>
+
+</body>
+</html>

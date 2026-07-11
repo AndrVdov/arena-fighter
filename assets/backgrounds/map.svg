@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+
+  <!-- ================= ФОН ГЛОБАЛЬНОЇ МАПИ =================
+       Погляд згори: зелені землі з лісами й горами, річка
+       з мостом, узбережжя праворуч і дороги, що з'єднують
+       три локації (дім — арена — крамниця). -->
+
+  <defs>
+    <!-- Землі -->
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"   stop-color="#2e3d1c"/>
+      <stop offset="0.5" stop-color="#26331a"/>
+      <stop offset="1"   stop-color="#1c2814"/>
+    </linearGradient>
+
+    <!-- Море -->
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1c3a42"/>
+      <stop offset="1" stop-color="#12262e"/>
+    </linearGradient>
+
+    <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#000" stop-opacity="0.66"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Землі та світлі галявини -->
+  <rect width="1600" height="900" fill="url(#land)"/>
+  <g fill="#39481f" opacity="0.6">
+    <ellipse cx="420" cy="330" rx="260" ry="140"/>
+    <ellipse cx="1000" cy="620" rx="300" ry="150"/>
+    <ellipse cx="900" cy="220" rx="220" ry="110"/>
+  </g>
+
+  <!-- Море біля правого краю -->
+  <path d="M1600 0 L1500 60 Q1420 180 1470 300 Q1520 400 1450 520 Q1390 640 1460 760 L1520 900 H1600 Z" fill="url(#sea)"/>
+  <g stroke="#3a6a72" stroke-width="3" fill="none" opacity="0.5">
+    <path d="M1500 200 q20 10 40 0"/>
+    <path d="M1480 420 q20 10 40 0"/>
+    <path d="M1500 640 q20 10 40 0"/>
+  </g>
+
+  <!-- Річка: з гір до моря, з мостом -->
+  <path d="M620 0 Q660 140 600 260 Q540 380 640 480 Q740 580 700 700 Q680 790 760 900"
+        stroke="#1c3a42" stroke-width="46" fill="none" stroke-linecap="round"/>
+  <path d="M620 0 Q660 140 600 260 Q540 380 640 480 Q740 580 700 700 Q680 790 760 900"
+        stroke="#2c525e" stroke-width="22" fill="none" stroke-linecap="round"/>
+  <!-- міст -->
+  <rect x="576" y="300" width="96" height="26" rx="6" fill="#5a4226" transform="rotate(-18 624 313)"/>
+
+  <!-- Гори північного заходу -->
+  <g>
+    <path d="M120 130 L190 30 L260 130 Z" fill="#4a4438"/>
+    <path d="M230 150 L310 40 L390 150 Z" fill="#544e40"/>
+    <path d="M80 200 L140 120 L200 200 Z" fill="#443e33"/>
+    <path d="M186 44 L190 30 L214 64 L198 58 Z" fill="#c8ccc0" opacity="0.75"/>
+    <path d="M305 55 L310 40 L336 76 L318 70 Z" fill="#c8ccc0" opacity="0.75"/>
+  </g>
+
+  <!-- Ліси: скупчення крон -->
+  <g fill="#1d2a16">
+    <circle cx="180" cy="420" r="26"/><circle cx="228" cy="400" r="30"/>
+    <circle cx="276" cy="424" r="26"/><circle cx="216" cy="446" r="24"/>
+    <circle cx="1020" cy="150" r="26"/><circle cx="1070" cy="130" r="30"/>
+    <circle cx="1118" cy="154" r="24"/>
+    <circle cx="360" cy="740" r="28"/><circle cx="410" cy="718" r="32"/>
+    <circle cx="462" cy="744" r="26"/><circle cx="404" cy="766" r="24"/>
+    <circle cx="900" cy="420" r="22"/><circle cx="944" cy="404" r="26"/>
+  </g>
+
+  <!-- Дороги між локаціями: дім (ліворуч) — арена (верх праворуч) — крамниця (низ праворуч) -->
+  <g stroke="#191207" stroke-width="30" fill="none" stroke-linecap="round" opacity="0.85">
+    <path d="M300 560 Q560 470 800 460 Q1060 450 1180 300"/>
+    <path d="M800 460 Q940 560 1120 700"/>
+  </g>
+  <g stroke="#6b5a34" stroke-width="18" fill="none" stroke-linecap="round">
+    <path d="M300 560 Q560 470 800 460 Q1060 450 1180 300"/>
+    <path d="M800 460 Q940 560 1120 700"/>
+  </g>
+
+  <!-- Роздоріжжя з дороговказом -->
+  <g>
+    <rect x="794" y="410" width="10" height="52" fill="#4a3a22"/>
+    <rect x="772" y="414" width="54" height="12" rx="3" fill="#5a4830"/>
+    <rect x="778" y="432" width="46" height="12" rx="3" fill="#5a4830"/>
+  </g>
+
+  <!-- Місця локацій: світлі плями під картки UI -->
+  <g fill="#4a5626" opacity="0.5">
+    <ellipse cx="280" cy="580" rx="130" ry="70"/>
+    <ellipse cx="1210" cy="280" rx="150" ry="80"/>
+    <ellipse cx="1150" cy="720" rx="130" ry="70"/>
+  </g>
+
+  <!-- Віньєтка -->
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+</svg>

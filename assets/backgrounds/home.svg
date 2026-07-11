@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+
+  <!-- ================= ФОН ДОМУ =================
+       Вечірня галявина: гори й ліс на обрії, кам'яна хатинка
+       з димарем і теплими вікнами, вогнище, тин, скриня
+       та тренувальна мішень. -->
+
+  <defs>
+    <!-- Вечірнє небо -->
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#141c1c"/>
+      <stop offset="0.7" stop-color="#22301f"/>
+      <stop offset="1"   stop-color="#31401f"/>
+    </linearGradient>
+
+    <!-- Трав'яний двір -->
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d4a20"/>
+      <stop offset="1" stop-color="#242e12"/>
+    </linearGradient>
+
+    <!-- Кам'яна стіна хатинки -->
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a7a5e"/>
+      <stop offset="1" stop-color="#5c5140"/>
+    </linearGradient>
+
+    <!-- Черепиця даху -->
+    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a5d78"/>
+      <stop offset="1" stop-color="#2c3a50"/>
+    </linearGradient>
+
+    <!-- Сяйво вогню та вікон -->
+    <radialGradient id="fireGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffb84d" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffb84d" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#000" stop-opacity="0.68"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Небо, місяць і зорі -->
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1240" cy="130" r="46" fill="#e8e2c8" opacity="0.85"/>
+  <circle cx="1224" cy="120" r="40" fill="#141c1c"/>
+  <g fill="#e8e2c8" opacity="0.6">
+    <circle cx="300" cy="90" r="2"/><circle cx="520" cy="150" r="2"/>
+    <circle cx="900" cy="70" r="2"/><circle cx="1450" cy="200" r="2"/>
+    <circle cx="1100" cy="240" r="2"/><circle cx="120" cy="220" r="2"/>
+  </g>
+
+  <!-- Гори на обрії -->
+  <path d="M900 470 L1090 240 L1210 400 L1330 190 L1500 420 L1600 340 V520 H900 Z" fill="#2c3830"/>
+  <path d="M1085 250 L1090 240 L1130 295 L1108 285 Z"  fill="#c8ccc0" opacity="0.7"/>
+  <path d="M1322 205 L1330 190 L1372 255 L1344 242 Z" fill="#c8ccc0" opacity="0.7"/>
+
+  <!-- Ліс: два ряди ялин -->
+  <g fill="#1d2a16">
+    <path d="M40 520 L90 380 L140 520 Z"/><path d="M150 520 L205 350 L260 520 Z"/>
+    <path d="M600 520 L650 390 L700 520 Z"/><path d="M690 520 L745 360 L800 520 Z"/>
+    <path d="M800 520 L850 400 L900 520 Z"/><path d="M1440 520 L1495 370 L1550 520 Z"/>
+    <path d="M1530 520 L1575 410 L1620 520 Z"/>
+  </g>
+  <g fill="#263618">
+    <path d="M90 540 L150 400 L210 540 Z"/><path d="M540 540 L595 410 L650 540 Z"/>
+    <path d="M745 540 L800 420 L855 540 Z"/><path d="M1380 540 L1440 400 L1500 540 Z"/>
+  </g>
+
+  <!-- Двір -->
+  <rect y="520" width="1600" height="380" fill="url(#grass)"/>
+  <ellipse cx="800" cy="640" rx="520" ry="120" fill="#4a5626" opacity="0.35"/>
+
+  <!-- Стежка до дверей -->
+  <path d="M330 620 Q460 660 560 760 Q620 830 640 900 L520 900 Q470 800 400 720 Q340 660 300 640 Z"
+        fill="#6b5c3a" opacity="0.55"/>
+
+  <!-- Хатинка -->
+  <g>
+    <rect x="160" y="420" width="320" height="190" fill="url(#wall)"/>
+    <!-- кладка -->
+    <g stroke="#4a4032" stroke-width="2" opacity="0.5">
+      <line x1="160" y1="470" x2="480" y2="470"/>
+      <line x1="160" y1="520" x2="480" y2="520"/>
+      <line x1="160" y1="570" x2="480" y2="570"/>
+    </g>
+    <!-- дах -->
+    <path d="M130 430 L320 290 L510 430 Z" fill="url(#roof)"/>
+    <path d="M130 430 L320 290 L336 302 L156 436 Z" fill="#5d7292"/>
+    <!-- димар і дим -->
+    <rect x="408" y="318" width="38" height="72" fill="#5c5140"/>
+    <g fill="#aab" opacity="0.25">
+      <ellipse cx="430" cy="290" rx="16" ry="10"/>
+      <ellipse cx="444" cy="258" rx="22" ry="13"/>
+      <ellipse cx="462" cy="220" rx="28" ry="16"/>
+    </g>
+    <!-- двері -->
+    <path d="M292 610 V520 Q320 496 348 520 V610 Z" fill="#3a2c18"/>
+    <circle cx="338" cy="566" r="4" fill="#c9a227"/>
+    <!-- вікна з теплим світлом -->
+    <circle cx="225" cy="505" r="38" fill="url(#fireGlow)"/>
+    <rect x="205" y="486" width="42" height="38" fill="#e8a83c" stroke="#3a2c18" stroke-width="4"/>
+    <line x1="226" y1="486" x2="226" y2="524" stroke="#3a2c18" stroke-width="3"/>
+    <circle cx="430" cy="505" r="34" fill="url(#fireGlow)"/>
+    <rect x="412" y="488" width="38" height="34" fill="#e8a83c" stroke="#3a2c18" stroke-width="4"/>
+  </g>
+
+  <!-- Тин -->
+  <g stroke="#4a3a22" stroke-width="8" stroke-linecap="round">
+    <line x1="560" y1="596" x2="1060" y2="596"/>
+    <line x1="560" y1="622" x2="1060" y2="622"/>
+  </g>
+  <g fill="#5a4830">
+    <rect x="580" y="570" width="12" height="80" rx="3"/>
+    <rect x="700" y="570" width="12" height="80" rx="3"/>
+    <rect x="820" y="570" width="12" height="80" rx="3"/>
+    <rect x="940" y="570" width="12" height="80" rx="3"/>
+    <rect x="1044" y="570" width="12" height="80" rx="3"/>
+  </g>
+
+  <!-- Вогнище -->
+  <g>
+    <circle cx="800" cy="740" r="110" fill="url(#fireGlow)"/>
+    <ellipse cx="800" cy="768" rx="58" ry="16" fill="#3a3026"/>
+    <g fill="#6b5c48">
+      <ellipse cx="752" cy="764" rx="14" ry="9"/><ellipse cx="848" cy="764" rx="14" ry="9"/>
+      <ellipse cx="776" cy="776" rx="14" ry="9"/><ellipse cx="824" cy="776" rx="14" ry="9"/>
+    </g>
+    <path d="M772 758 L828 742 L836 752 L780 768 Z" fill="#4a3520"/>
+    <path d="M828 758 L772 742 L764 752 L820 768 Z" fill="#54401f"/>
+    <path d="M800 674 q-24 32 -8 54 q8 12 -6 24 q28 8 40 -12 q14 -28 -26 -66 Z" fill="#e07820"/>
+    <path d="M800 698 q-12 20 -2 34 q5 8 -3 14 q17 4 22 -9 q7 -16 -17 -39 Z" fill="#f5c04a"/>
+  </g>
+
+  <!-- Скриня -->
+  <g>
+    <rect x="1120" y="700" width="120" height="70" rx="8" fill="#5a4226"/>
+    <path d="M1120 706 Q1180 662 1240 706 L1240 720 L1120 720 Z" fill="#6b5232"/>
+    <rect x="1172" y="700" width="16" height="70" fill="#c9a227" opacity="0.8"/>
+    <rect x="1120" y="726" width="120" height="8" fill="#3a2c18"/>
+  </g>
+
+  <!-- Тренувальна мішень -->
+  <g>
+    <rect x="1392" y="620" width="14" height="160" fill="#5a4830"/>
+    <circle cx="1399" cy="600" r="56" fill="#c8a35e"/>
+    <circle cx="1399" cy="600" r="38" fill="#a87f45"/>
+    <circle cx="1399" cy="600" r="20" fill="#8f2318"/>
+    <line x1="1362" y1="574" x2="1386" y2="592" stroke="#3a2c18" stroke-width="5"/>
+  </g>
+
+  <!-- Віньєтка -->
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+</svg>

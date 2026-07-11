@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+
+  <!-- ================= ФОН КРАМНИЦІ =================
+       Намет торговця: червоний тент, дерев'яна стіна з полицями
+       зілля, прилавок із червоною скатертиною, бочки, мішки
+       та теплі ліхтарі. -->
+
+  <defs>
+    <!-- Тепле нутро крамниці -->
+    <linearGradient id="interior" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241812"/>
+      <stop offset="1" stop-color="#150d08"/>
+    </linearGradient>
+
+    <!-- Дерево -->
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a4226"/>
+      <stop offset="1" stop-color="#3a2a16"/>
+    </linearGradient>
+
+    <linearGradient id="woodLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7a5c36"/>
+      <stop offset="1" stop-color="#54401f"/>
+    </linearGradient>
+
+    <!-- Тент -->
+    <linearGradient id="canopy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f2318"/>
+      <stop offset="1" stop-color="#6b1a10"/>
+    </linearGradient>
+
+    <radialGradient id="lanternGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffb84d" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffb84d" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#000" stop-opacity="0.7"/>
+    </radialGradient>
+
+    <!-- Дощата стіна -->
+    <pattern id="planks" width="90" height="900" patternUnits="userSpaceOnUse">
+      <rect width="86" height="900" fill="#33241a"/>
+      <rect x="86" width="4" height="900" fill="#1f1509"/>
+    </pattern>
+  </defs>
+
+  <!-- Нутро та дощата стіна -->
+  <rect width="1600" height="900" fill="url(#interior)"/>
+  <rect x="120" y="140" width="1360" height="560" fill="url(#planks)"/>
+
+  <!-- Схрещені мечі на стіні -->
+  <g stroke="#8a8f98" stroke-width="10" stroke-linecap="round" opacity="0.85">
+    <line x1="1240" y1="200" x2="1360" y2="320"/>
+    <line x1="1360" y1="200" x2="1240" y2="320"/>
+  </g>
+  <circle cx="1300" cy="260" r="14" fill="#c9a227"/>
+
+  <!-- Полиці із зіллям -->
+  <g>
+    <rect x="240" y="330" width="620" height="14" fill="url(#woodLight)"/>
+    <rect x="240" y="470" width="620" height="14" fill="url(#woodLight)"/>
+    <!-- верхня полиця: пляшечки -->
+    <g>
+      <rect x="280" y="284" width="26" height="46" rx="8" fill="#b83a2a"/>
+      <rect x="330" y="292" width="22" height="38" rx="7" fill="#3a8fc0"/>
+      <rect x="374" y="286" width="24" height="44" rx="8" fill="#58b060"/>
+      <rect x="470" y="290" width="24" height="40" rx="8" fill="#8a6fc0"/>
+      <rect x="520" y="284" width="26" height="46" rx="8" fill="#e0a520"/>
+      <rect x="640" y="288" width="24" height="42" rx="8" fill="#b83a2a"/>
+      <rect x="700" y="292" width="22" height="38" rx="7" fill="#3a8fc0"/>
+      <rect x="790" y="286" width="24" height="44" rx="8" fill="#58b060"/>
+    </g>
+    <!-- нижня полиця: пляшечки й книги -->
+    <g>
+      <rect x="300" y="426" width="24" height="44" rx="8" fill="#8a6fc0"/>
+      <rect x="350" y="432" width="22" height="38" rx="7" fill="#e0a520"/>
+      <rect x="440" y="424" width="16" height="46" fill="#6b3a2a"/>
+      <rect x="460" y="428" width="16" height="42" fill="#3a4a6b"/>
+      <rect x="480" y="424" width="16" height="46" fill="#4a5a2a"/>
+      <rect x="600" y="426" width="24" height="44" rx="8" fill="#b83a2a"/>
+      <rect x="660" y="430" width="22" height="40" rx="7" fill="#58b060"/>
+      <rect x="760" y="426" width="24" height="44" rx="8" fill="#3a8fc0"/>
+    </g>
+  </g>
+
+  <!-- Тент: смуги та бахрома -->
+  <g>
+    <path d="M60 0 H1540 L1500 150 Q800 190 100 150 Z" fill="url(#canopy)"/>
+    <g fill="#6b1a10">
+      <path d="M220 4 L260 158 L340 160 L300 4 Z"/>
+      <path d="M540 4 L570 166 L650 168 L620 4 Z"/>
+      <path d="M860 4 L880 170 L960 168 L940 4 Z"/>
+      <path d="M1180 4 L1190 164 L1270 160 L1260 4 Z"/>
+    </g>
+    <g fill="#8f2318">
+      <path d="M100 150 L145 196 L190 152 Z"/><path d="M280 158 L325 204 L370 160 Z"/>
+      <path d="M460 163 L505 209 L550 165 Z"/><path d="M640 167 L685 213 L730 168 Z"/>
+      <path d="M820 170 L865 214 L910 169 Z"/><path d="M1000 168 L1045 212 L1090 166 Z"/>
+      <path d="M1180 164 L1225 208 L1270 160 Z"/><path d="M1360 156 L1405 200 L1450 152 Z"/>
+    </g>
+  </g>
+
+  <!-- Стовпи намету -->
+  <rect x="120" y="140" width="26" height="620" fill="url(#wood)"/>
+  <rect x="1454" y="140" width="26" height="620" fill="url(#wood)"/>
+
+  <!-- Ліхтарі -->
+  <g>
+    <circle cx="330" cy="250" r="90" fill="url(#lanternGlow)"/>
+    <line x1="330" y1="168" x2="330" y2="212" stroke="#2a1c10" stroke-width="5"/>
+    <rect x="312" y="212" width="36" height="52" rx="9" fill="#e8a83c" stroke="#3a2c18" stroke-width="5"/>
+    <circle cx="1120" cy="270" r="90" fill="url(#lanternGlow)"/>
+    <line x1="1120" y1="176" x2="1120" y2="228" stroke="#2a1c10" stroke-width="5"/>
+    <rect x="1102" y="228" width="36" height="52" rx="9" fill="#e8a83c" stroke="#3a2c18" stroke-width="5"/>
+  </g>
+
+  <!-- Прилавок -->
+  <g>
+    <rect x="200" y="560" width="1200" height="150" fill="url(#wood)"/>
+    <rect x="184" y="540" width="1232" height="30" rx="6" fill="url(#woodLight)"/>
+    <!-- скатертина з емблемою -->
+    <path d="M700 540 H900 V690 L860 664 L820 690 L780 664 L740 690 L700 664 Z" fill="#8f2318"/>
+    <circle cx="800" cy="600" r="30" fill="none" stroke="#c9a227" stroke-width="5"/>
+    <path d="M800 580 L808 598 L800 620 L792 598 Z" fill="#c9a227"/>
+    <!-- товари на прилавку -->
+    <rect x="300" y="502" width="26" height="40" rx="8" fill="#b83a2a"/>
+    <rect x="350" y="508" width="22" height="34" rx="7" fill="#3a8fc0"/>
+    <ellipse cx="1080" cy="530" rx="42" ry="14" fill="#c8a35e"/>
+    <ellipse cx="1060" cy="518" rx="16" ry="10" fill="#a87f45"/>
+    <ellipse cx="1096" cy="516" rx="16" ry="10" fill="#b8905a"/>
+  </g>
+
+  <!-- Бочки та мішки на підлозі -->
+  <g>
+    <g fill="#5a4226" stroke="#3a2a16" stroke-width="4">
+      <rect x="220" y="710" width="110" height="140" rx="26"/>
+      <rect x="1290" y="710" width="110" height="140" rx="26"/>
+    </g>
+    <g stroke="#8a6d3a" stroke-width="6">
+      <line x1="222" y1="748" x2="328" y2="748"/><line x1="222" y1="812" x2="328" y2="812"/>
+      <line x1="1292" y1="748" x2="1398" y2="748"/><line x1="1292" y1="812" x2="1398" y2="812"/>
+    </g>
+    <g fill="#9a8258">
+      <path d="M420 850 q-6 -74 52 -78 q56 4 50 78 Z"/>
+      <path d="M520 852 q-4 -56 40 -60 q42 4 38 60 Z"/>
+      <path d="M1140 852 q-6 -66 48 -70 q52 4 46 70 Z"/>
+    </g>
+    <path d="M462 776 q10 -14 22 0" stroke="#5c4c30" stroke-width="5" fill="none"/>
+  </g>
+
+  <!-- Віньєтка -->
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+</svg>
