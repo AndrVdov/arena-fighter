@@ -247,7 +247,8 @@ class Game {
         changed = true;
       }
 
-      if (player.arenaLineup.regenerateEnemies(BALANCE.regen.percentPerTick)) {
+      const enemiesRegenerated = player.arenaLineup.regenerateEnemies(BALANCE.regen.percentPerTick);
+      if (enemiesRegenerated) {
         changed = true;
       }
 
@@ -256,6 +257,9 @@ class Game {
         if (resting) {
           this.effectsBar.render();     // порог сна мог включить/выключить бафф
           this.openModal?.refresh();    // живой прогресс в окне действия
+        }
+        if (enemiesRegenerated && this.currentScreenId === 'arena') {
+          this.screens.arena.refreshOpponentHealth();
         }
         this.save();
       }

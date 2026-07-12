@@ -163,7 +163,7 @@ class ArenaScreen extends LocationScreen {
         <div class="opponent-card__name">${enemy.raceName}</div>
         <div class="opponent-card__level">Рівень ${enemy.level}</div>
         <div class="opponent-card__stats">
-          <span>${Hud.icon('heart')}${enemy.hp}/${enemy.maxHp}</span>
+          <span data-opponent-hp="${index}">${Hud.icon('heart')}<span>${enemy.hp}/${enemy.maxHp}</span></span>
           <span>${Hud.icon('equipment')}~${enemy.attackDamage}</span>
         </div>
         ${revengeExpiresAt ? `
@@ -196,6 +196,18 @@ class ArenaScreen extends LocationScreen {
       }
     });
     this.container.querySelector('#start-fight').disabled = false;
+  }
+
+  /** Точечно обновить HP карточек, не сбрасывая выбор и таймер состава. */
+  refreshOpponentHealth() {
+    if (!this.container?.querySelector('.arena-select')) return;
+    const slots = this.game.player.arenaLineup.getSlots(this.activeRoster);
+    this.container.querySelectorAll('[data-opponent-hp]').forEach(element => {
+      const enemy = slots[Number(element.dataset.opponentHp)];
+      if (!enemy) return;
+      const value = element.querySelector('span');
+      if (value) value.textContent = `${enemy.hp}/${enemy.maxHp}`;
+    });
   }
 
   /** Обратный отсчёт до автообновления состава. */
