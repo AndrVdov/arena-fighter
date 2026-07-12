@@ -90,7 +90,11 @@ const BALANCE = {
   enemy: {
     xpBase: 12,             // опыт зависит только от уровня, без множителя звания
     xpPerLevel: 8,
-    preBattleConsumableChance: 0.4,
+    elixirChance: {
+      lowerLevel: 0.75,
+      equalLevel: 0.50,
+      higherLevel: 0.25,
+    },
     // Смещение уровней противников на арене относительно игрока
     levelOffsets: [-1, 0, 1, 2],
   },

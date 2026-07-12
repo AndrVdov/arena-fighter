@@ -6,6 +6,36 @@
  */
 class Fighter {
 
+  static applyRaceModifier(value, race, stat) {
+    const modifier = race?.statModifiers?.[stat] ?? 0;
+    return Math.max(1, Math.round(value * (1 + modifier)));
+  }
+
+  static raceTraitParts(race) {
+    const labels = {
+      strength: 'Сили',
+      agility: 'Спритності',
+      vitality: 'Життя',
+    };
+    const parts = [];
+    for (const stat of ['strength', 'agility', 'vitality']) {
+      const modifier = race?.statModifiers?.[stat] ?? 0;
+      if (modifier === 0) continue;
+      const percent = Math.round(Math.abs(modifier) * 100);
+      parts.push(`${modifier > 0 ? '+' : '−'}${percent}% до ${labels[stat]}`);
+    }
+    return parts;
+  }
+
+  static raceTraitText(race) {
+    const parts = Fighter.raceTraitParts(race);
+    return parts.length ? parts.join(', ') : 'без модифікаторів';
+  }
+
+  racialBaseStat(stat) {
+    return Fighter.applyRaceModifier(this[stat], this.race, stat);
+  }
+
   equipmentBonus(aspect) {
     return Object.values(this.equipment).filter(Boolean)
       .reduce((sum, item) => sum + (item.bonuses[aspect] ?? 0), 0);
@@ -26,7 +56,7 @@ class Fighter {
   }
 
   statWithGear(stat) {
-    return this[stat] + this.equipmentBonus(stat) + this.buffValue(stat);
+    return this.racialBaseStat(stat) + this.equipmentBonus(stat) + this.buffValue(stat);
   }
 
   get effectiveStrength() { return this.statWithGear('strength'); }
@@ -49,5 +79,19 @@ class Fighter {
 
   clampHp() {
     this.hp = Math.min(this.hp, this.maxHp);
+  }
+
+  /** Снять и передать всё надетое снаряжение в указанный инвентарь. */
+  drainEquipmentTo(targetInventory) {
+    const transferred = [];
+    for (const slot of Object.keys(EQUIPMENT_SLOTS)) {
+      const item = this.equipment[slot];
+      if (!item) continue;
+      this.equipment[slot] = null;
+      targetInventory.add(item);
+      transferred.push(item);
+    }
+    this.clampHp();
+    return transferred;
   }
 }

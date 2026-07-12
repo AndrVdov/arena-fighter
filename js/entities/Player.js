@@ -14,6 +14,7 @@ class Player extends Fighter {
     const base = BALANCE.player;
 
     this.name = data.name ?? 'Герой';
+    this.race = RACES[data.raceId] ?? RACES.bandit;
 
     // Базовые характеристики (без бонусов)
     this.strength = data.strength ?? base.baseStats.strength;
@@ -48,11 +49,7 @@ class Player extends Fighter {
 
     // Потребности: голод / жажда / сон.
     // ВАЖНО: инициализируются до hp — maxHp зависит от сна (через Жизнь).
-    this.needs = {
-      hunger: data.needs?.hunger ?? BALANCE.needs.start,
-      thirst: data.needs?.thirst ?? BALANCE.needs.start,
-      sleep:  data.needs?.sleep  ?? BALANCE.needs.start,
-    };
+    this.needs = Needs.normalize(data.needs);
 
     // Здоровье (максимум зависит от Жизни, экипировки и сна)
     this.hp = data.hp ?? this.maxHp;
@@ -134,10 +131,15 @@ class Player extends Fighter {
   spendStatPoint(stat) {
     if (this.freeStatPoints <= 0) return false;
 
+    const previousMaxHp = this.maxHp;
     this[stat]++;
     this.freeStatPoints--;
-    if (stat === 'vitality') this.hp += BALANCE.player.hpPerVitality;
+    if (stat === 'vitality') this.hp += this.maxHp - previousMaxHp;
     return true;
+  }
+
+  get portrait() {
+    return this.race.playerPortrait ?? this.race.portrait;
   }
 
   // ===== Расходники =====
@@ -169,6 +171,7 @@ class Player extends Fighter {
 
     return {
       name: this.name,
+      raceId: this.race.id,
       strength: this.strength,
       agility: this.agility,
       vitality: this.vitality,

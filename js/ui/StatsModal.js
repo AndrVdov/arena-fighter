@@ -15,6 +15,7 @@ class StatsModal extends Modal {
 
     return `
       <div class="modal__subtitle">${p.name}, рівень ${p.level}</div>
+      <div class="modal__subtitle">Раса: ${p.race.name}</div>
       ${p.freeStatPoints > 0 ? `<div class="stat-points">⭐ Вільні очки: ${p.freeStatPoints}</div>` : ''}
 
       ${this.statRow('strength', '💪 Сила', p.strength, p.effectiveStrength)}
@@ -60,16 +61,13 @@ class StatsModal extends Modal {
     `;
   }
 
-  /** Активные эффекты: эликсиры и состояние потребностей. */
+  /** Все постоянные и временные эффекты героя из общего UI-агрегатора. */
   effectsHtml(player) {
-    const lines = [];
-
-    for (const buff of player.buffs) {
-      lines.push(`<div class="effect effect--buff">🔮 ${ASPECTS[buff.stat].format(buff.value)} (ще боїв: ${buff.fightsLeft})</div>`);
-    }
-    for (const status of Needs.statusLines(player)) {
-      lines.push(`<div class="effect effect--${status.type}">${status.text}</div>`);
-    }
+    const lines = EffectsBar.collectPlayerEffects(player, this.game).map(effect => `
+      <div class="effect effect--${effect.type}" title="${effect.hint}">
+        ${Hud.icon(effect.icon)}<span>${effect.text}</span>
+      </div>
+    `);
 
     return lines.length
       ? `<div class="effects"><div class="effects__title">Активні ефекти</div>${lines.join('')}</div>`

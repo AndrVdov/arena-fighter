@@ -1,17 +1,18 @@
 /**
  * СОХРАНЕНИЕ ПРОГРЕССА
  * --------------------
- * Три слота сохранений в localStorage. Каждый слот хранит
+ * Шесть слотов сохранений в localStorage. Каждый слот хранит
  * версию формата, время сохранения и снимок игрока.
  */
 class SaveManager {
 
-  static SLOT_COUNT = 3;
+  static SLOT_COUNT = 6;
   static VERSION = 1;
 
   /** Ключ старого односейвового формата — мигрирует в слот 1. */
   static LEGACY_KEY = 'arena-fighter-save';
   static SESSION_KEY = 'arena-fighter-session';
+  static LAST_SLOT_KEY = 'arena-fighter-last-slot';
 
   constructor() {
     this.migrateLegacySave();
@@ -56,6 +57,15 @@ class SaveManager {
   /** Запомнить активного героя и открытый игровой экран. */
   saveSession(slot, screen) {
     localStorage.setItem(SaveManager.SESSION_KEY, JSON.stringify({ slot, screen }));
+    localStorage.setItem(SaveManager.LAST_SLOT_KEY, String(slot));
+  }
+
+  /** Последний выбранный слот сохраняется даже после явного выхода в меню. */
+  lastSlot() {
+    const slot = Number(localStorage.getItem(SaveManager.LAST_SLOT_KEY));
+    return Number.isInteger(slot) && slot >= 1 && slot <= SaveManager.SLOT_COUNT
+      ? slot
+      : null;
   }
 
   /** Прочитать последнюю сессию или вернуть null, если запись некорректна. */

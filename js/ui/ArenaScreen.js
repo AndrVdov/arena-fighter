@@ -15,6 +15,7 @@ class ArenaScreen extends LocationScreen {
     this.selectedIndex = null;  // выбранная карточка
     this.currentEnemy = null;   // противник текущего боя
     this.originalEnemy = null;  // сохранённая версия до транзакционного боя
+    this.battleMode = 'training';
     this.playbackTimer = null;  // таймер проигрывания лога боя
     this.timerInterval = null;  // обратный отсчёт до новых противников
   }
@@ -85,12 +86,24 @@ class ArenaScreen extends LocationScreen {
             </div>
           `}
         </div>
-        ${cards
-          ? `<div class="opponent-list">${cards}</div>`
-          : `<p class="empty">${isRevenge
-              ? 'Ніхто ще не перемагав тебе — список помсти порожній.'
-              : 'У цьому розділі зараз немає супротивників.'}</p>`}
+        <div class="arena-opponents">
+          ${cards
+            ? `<div class="opponent-list">${cards}</div>`
+            : `<p class="empty">${isRevenge
+                ? 'Ніхто ще не перемагав тебе — список помсти порожній.'
+                : 'У цьому розділі зараз немає супротивників.'}</p>`}
+        </div>
         <div class="arena-controls">
+          <div class="battle-mode" role="radiogroup" aria-label="Режим бою">
+            <button class="battle-mode__option battle-mode__option--active" data-battle-mode="training"
+                    role="radio" aria-checked="true">
+              <b>Тренувальний</b><small>До 50% HP · ризик усього золота</small>
+            </button>
+            <button class="battle-mode__option battle-mode__option--lethal" data-battle-mode="lethal"
+                    role="radio" aria-checked="false">
+              <b>Смертельний</b><small>До 0 HP · ризик усього майна</small>
+            </button>
+          </div>
           <button class="btn btn--primary arena-fight-button" id="start-fight" disabled>
             ${Hud.icon('equipment')}<span>До бою!</span>
           </button>
@@ -127,6 +140,12 @@ class ArenaScreen extends LocationScreen {
     this.container.querySelector('#start-fight')
       .addEventListener('click', () => this.startBattle());
 
+    this.container.querySelectorAll('[data-battle-mode]').forEach(button => {
+      button.addEventListener('click', () => this.selectBattleMode(button.dataset.battleMode));
+    });
+
+    this.selectBattleMode(this.battleMode);
+
     this.startArenaTimer();
   }
 
@@ -139,9 +158,9 @@ class ArenaScreen extends LocationScreen {
         <button class="opponent-card__info" data-info-index="${index}" title="Характеристики супротивника">ⓘ</button>
         <div class="opponent-card__badge">${enemy.elite.badge} ${enemy.elite.name}</div>
         <div class="opponent-card__portrait">
-          <img src="${enemy.race.portrait}" alt="${enemy.race.name}">
+          <img src="${enemy.race.portrait}" alt="${enemy.raceName}">
         </div>
-        <div class="opponent-card__name">${enemy.race.name}</div>
+        <div class="opponent-card__name">${enemy.raceName}</div>
         <div class="opponent-card__level">Рівень ${enemy.level}</div>
         <div class="opponent-card__stats">
           <span>${Hud.icon('heart')}${enemy.hp}/${enemy.maxHp}</span>
@@ -271,7 +290,7 @@ class ArenaScreen extends LocationScreen {
       <div class="panel result-panel enemy-info">
         <div class="enemy-info__header">
           <div class="enemy-info__icon">
-            <img src="${enemy.race.portrait}" alt="${enemy.race.name}">
+            <img src="${enemy.race.portrait}" alt="${enemy.raceName}">
           </div>
           <div>
             <div class="enemy-info__name">${enemy.title}</div>
@@ -326,7 +345,7 @@ class ArenaScreen extends LocationScreen {
       return `
         <div class="enemy-info__wallet">${Hud.icon('coin')} Золото: <b>${enemy.gold}</b></div>
         <div class="enemy-info__item-list">${items}</div>
-        <p class="enemy-info__note">Перед боєм є ${Math.round(BALANCE.enemy.preBattleConsumableChance * 100)}% шанс використати один корисний предмет: еліксир, зілля, їжу або воду.</p>
+        <p class="enemy-info__note">Їжу та воду супротивник використовує одразу, лікувальні зілля — після перемоги, а один еліксир може випити перед боєм.</p>
       `;
     }
 
@@ -349,73 +368,129 @@ class ArenaScreen extends LocationScreen {
       `;
     }
 
-    const effective = stat => enemy.statWithGear(stat);
     const stat = (icon, label, base, total) =>
       `<span>${icon} ${label}: <b>${base}${total !== base ? ` → ${total}` : ''}</b></span>`;
+    const effects = EffectsBar.collectEnemyEffects(enemy);
     return `
       <div class="enemy-info__section">Базові → підсумкові</div>
       <div class="enemy-info__rows">
-        ${stat('💪', 'Сила', enemy.strength, effective('strength'))}
-        ${stat('🏃', 'Спритність', enemy.agility, effective('agility'))}
-        ${stat('❤️', 'Життя', enemy.vitality, effective('vitality'))}
+        ${stat('💪', 'Сила', enemy.strength, enemy.effectiveStrength)}
+        ${stat('🏃', 'Спритність', enemy.agility, enemy.effectiveAgility)}
+        ${stat('❤️', 'Життя', enemy.vitality, enemy.effectiveVitality)}
         <span>🩸 HP: <b>${enemy.hp} / ${enemy.maxHp}</b></span>
         <span>⚔️ Урон: <b>~${enemy.attackDamage}</b></span>
         <span>✨ Досвід: <b>${enemy.xpReward}</b></span>
       </div>
       <div class="enemy-info__section">Потреби</div>
       <div class="enemy-info__needs">
-        ${this.enemyNeedHtml('hunger', enemy.needs.hunger)}
-        ${this.enemyNeedHtml('thirst', enemy.needs.thirst)}
-        ${this.enemyNeedHtml('sleep', enemy.needs.sleep)}
+        ${this.enemyNeedHtml(enemy, 'hunger')}
+        ${this.enemyNeedHtml(enemy, 'thirst')}
+        ${this.enemyNeedHtml(enemy, 'sleep')}
       </div>
+      ${effects.length ? `
+        <div class="enemy-info__section">Активні ефекти</div>
+        <div class="enemy-info__active-effects">
+          ${effects.map(effect => `
+            <div class="enemy-info__active-effect enemy-info__active-effect--${effect.type}" title="${effect.hint}">
+              ${Hud.icon(effect.icon)}<span>${effect.text}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
     `;
   }
 
-  enemyNeedHtml(need, value) {
-    const info = Needs.LABELS[need];
-    const state = value <= BALANCE.needs.debuffBelow ? 'low'
-      : value >= BALANCE.needs.buffAbove ? 'high' : 'normal';
+  enemyNeedHtml(enemy, need) {
+    const value = enemy.needs[need];
+    const { info, bonus, state } = Needs.effectFor(enemy, need);
+    const effect = bonus > 0
+      ? `+${bonus} до ${info.statName}`
+      : bonus < 0 ? `−${Math.abs(bonus)} до ${info.statName}` : 'Без модифікатора';
+    const width = value / BALANCE.needs.max * 100;
     return `
       <div class="enemy-info__need enemy-info__need--${state}">
-        ${Hud.icon(need)}
-        <span>${info.name}</span>
-        <b>${value} / ${BALANCE.needs.max}</b>
-        <div class="bar"><div class="bar__fill bar__fill--${need}" style="width:${value}%"></div></div>
+        <div class="enemy-info__need-heading">
+          ${Hud.icon(need)}
+          <span>${info.name}</span>
+          <b>${value} / ${BALANCE.needs.max}</b>
+        </div>
+        <div class="bar" role="meter" aria-label="${info.name}" aria-valuemin="0"
+             aria-valuemax="${BALANCE.needs.max}" aria-valuenow="${value}">
+          <div class="bar__fill bar__fill--${need}" style="width:${width}%"></div>
+        </div>
+        <small>${effect}</small>
       </div>
     `;
   }
 
   // ===== Фаза 2: бой =====
 
+  selectBattleMode(mode) {
+    this.battleMode = Combat.MODES[mode] ? mode : 'training';
+    this.container.querySelectorAll('[data-battle-mode]').forEach(button => {
+      const selected = button.dataset.battleMode === this.battleMode;
+      button.classList.toggle('battle-mode__option--active', selected);
+      button.setAttribute('aria-checked', String(selected));
+    });
+  }
+
   startBattle() {
     if (this.selectedIndex === null) return;
 
-    clearInterval(this.timerInterval); // во время боя состав не трогаем
     this.originalEnemy = this.game.player.arenaLineup.getEnemy(this.activeRoster, this.selectedIndex);
     if (!this.originalEnemy) return;
+
+    const mode = this.battleMode;
+    const missingGold = this.originalEnemy.missingChallengeGold(this.game.player.gold);
+    if (mode === 'training' && missingGold > 0) {
+      this.game.toast(
+        `Супротивник відхилив виклик. Ставка — ${this.originalEnemy.challengeStake} золота. `
+          + `Вам не вистачає ${missingGold} золота.`
+      );
+      return;
+    }
+
+    if (mode === 'lethal') {
+      this.game.confirm(
+        'Смертельний бій триває до 0 HP. У разі поразки ти втратиш усе золото, інвентар і надіте спорядження. Продовжити?',
+        () => this.beginBattle(mode)
+      );
+      return;
+    }
+
+    this.beginBattle(mode);
+  }
+
+  beginBattle(mode) {
+    if (!this.originalEnemy) return;
+
+    clearInterval(this.timerInterval); // во время боя состав не трогаем
     this.currentEnemy = Enemy.fromJSON(this.originalEnemy.toJSON());
     this.game.inCombat = true;
-    const usedItem = this.currentEnemy.usePreBattleConsumable();
+    const usedItem = this.currentEnemy.usePreBattleElixir(this.game.player.level);
     const openingEvents = usedItem ? [{
       type: 'item',
       text: `🧪 ${this.currentEnemy.title} використовує «${usedItem.name}»: ${usedItem.describe()}.`,
     }] : [];
-    const result = Combat.simulate(this.game.player, this.currentEnemy, openingEvents);
+    const result = Combat.simulate(this.game.player, this.currentEnemy, openingEvents, mode);
 
-    this.renderBattle(this.currentEnemy);
+    this.renderBattle(this.currentEnemy, mode);
     document.getElementById('hud-wrap').style.display = 'none';
     this.game.setGameNavigationVisible(false); // во время боя не сбежать с арены
     this.playEvents(result, this.currentEnemy);
   }
 
-  renderBattle(enemy) {
+  renderBattle(enemy, mode) {
     const player = this.game.player;
     this.container.classList.add('arena-battle-active');
 
     this.container.innerHTML = `
       <div class="arena-battle">
+        <div class="battle-mode-badge battle-mode-badge--${mode}">
+          ${mode === 'training' ? 'Тренувальний бій · до 50% HP' : 'Смертельний бій · до 0 HP'}
+        </div>
         <div class="battle-stage">
-          ${this.fighterHtml('player', '🛡️', player.name, player.hp, player.maxHp, Hud.HERO_PORTRAIT,
+          ${this.fighterHtml('player', '🛡️', player.name, player.hp, player.maxHp, player.portrait,
             EffectsBar.collectPlayerEffects(player, this.game))}
           <div class="battle-versus" aria-hidden="true">
             ${Hud.icon('equipment')}
@@ -529,33 +604,51 @@ class ArenaScreen extends LocationScreen {
   applyResult(result, enemy, { silent = false } = {}) {
     const player = this.game.player;
     const rosterEnemy = this.originalEnemy ?? enemy;
-    const rewards = { xp: 0, gold: 0, items: [], levelsGained: 0, lostGold: 0, lostItems: [] };
+    const lethal = result.mode === 'lethal';
+    const rewards = {
+      mode: result.mode, xp: 0, gold: 0, items: [], equipment: [], levelsGained: 0,
+      lostGold: 0, lostItems: [], lostEquipment: [],
+    };
 
     if (result.playerWon) {
       rewards.xp = enemy.xpReward;
       rewards.gold = enemy.gold;
-      rewards.items = enemy.inventory.transferAllTo(player.inventory);
+      if (lethal) {
+        rewards.items = enemy.inventory.transferAllTo(player.inventory);
+        rewards.equipment = enemy.drainEquipmentTo(player.inventory);
+      }
       player.gold += rewards.gold;
       enemy.gold = 0;
       player.hp = Math.max(1, result.playerHpLeft);
       rewards.levelsGained = player.gainXp(rewards.xp);
 
-      // Побеждённый покидает арену; остальные ждут своего часа
-      player.arenaLineup.remove(rosterEnemy);
+      if (lethal) player.arenaLineup.remove(rosterEnemy);
+      else {
+        enemy.hp = Math.max(1, result.enemyHpLeft);
+        player.arenaLineup.replace(rosterEnemy, enemy);
+      }
     } else {
       rewards.lostGold = player.gold;
-      rewards.lostItems = player.inventory.transferAllTo(enemy.inventory);
+      if (lethal) {
+        rewards.lostItems = player.inventory.transferAllTo(enemy.inventory);
+        rewards.lostEquipment = player.drainEquipmentTo(enemy.inventory);
+      }
       enemy.gold += player.gold;
       player.gold = 0;
-      player.hp = BALANCE.combat.defeatHp;
+      player.hp = lethal ? BALANCE.combat.defeatHp : Math.max(1, result.playerHpLeft);
+      if (lethal) player.location = 'home';
       enemy.hp = Math.max(1, result.enemyHpLeft);
+      if (lethal) enemy.prepareAfterVictory();
     }
 
     Needs.spendForFight(player);
     Needs.spendForFight(enemy);
     player.spendBuffCharges();
     enemy.spendBuffCharges();
-    if (!result.playerWon) player.arenaLineup.moveToRevenge(rosterEnemy, enemy);
+    if (!result.playerWon) {
+      if (lethal) player.arenaLineup.moveToRevenge(rosterEnemy, enemy);
+      else player.arenaLineup.replace(rosterEnemy, enemy);
+    }
 
     this.selectedIndex = null;
     this.currentEnemy = null;
@@ -575,6 +668,8 @@ class ArenaScreen extends LocationScreen {
       rewardLines.push(`<li>🪙 Золото: +${rewards.gold}</li>`);
       rewards.items.forEach(item => rewardLines.push(
         `<li>${ItemRow.html(item, [], '', { playerLevel: this.game.player.level })}</li>`));
+      rewards.equipment.forEach(item => rewardLines.push(
+        `<li>${ItemRow.html(item, [], '', { playerLevel: this.game.player.level })}</li>`));
       if (rewards.levelsGained > 0) {
         rewardLines.push(`<li class="result__levelup">🎉 Новий рівень! +${rewards.levelsGained * BALANCE.player.statPointsPerLevel} очок характеристик</li>`);
       }
@@ -584,10 +679,12 @@ class ArenaScreen extends LocationScreen {
     overlay.className = 'overlay';
     overlay.innerHTML = `
       <div class="panel result-panel">
-        <div class="panel__title">${playerWon ? '🏆 Перемога!' : '☠️ Поразка'}</div>
+        <div class="panel__title">${playerWon ? '🏆 Перемога!' : rewards.mode === 'training' ? '🏳️ Поразка' : '☠️ Поразка'}</div>
         ${playerWon
           ? `<ul class="result__rewards">${rewardLines.join('')}</ul>`
-          : `<p class="placeholder">Супротивник забрав ${rewards.lostGold} золота та предметів: ${rewards.lostItems.length}. Надіте спорядження залишилося при тобі.</p>`}
+          : rewards.mode === 'training'
+            ? `<p class="placeholder">Супротивник забрав ${rewards.lostGold} золота. Інвентар і спорядження залишилися при тобі.</p>`
+            : `<p class="placeholder">Супротивник забрав ${rewards.lostGold} золота, предметів: ${rewards.lostItems.length}, спорядження: ${rewards.lostEquipment.length}.</p>`}
         <button class="btn btn--primary" id="result-continue">Продовжити</button>
       </div>
     `;
@@ -595,7 +692,8 @@ class ArenaScreen extends LocationScreen {
     document.body.appendChild(overlay);
     overlay.querySelector('#result-continue').addEventListener('click', () => {
       overlay.remove();
-      this.renderSelect();
+      if (!playerWon && rewards.mode === 'lethal') this.game.showScreen('home');
+      else this.renderSelect();
     });
   }
 }

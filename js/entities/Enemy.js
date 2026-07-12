@@ -10,6 +10,7 @@ class Enemy extends Fighter {
   constructor({ raceId, eliteId, level, strength, agility, vitality,
     equipment, inventory, gold, buffs, needs, hp } = {}) {
     super();
+    const isGenerated = inventory === undefined;
     this.race = RACES[raceId] ?? RACES.bandit;
     this.elite = ELITES[eliteId] ?? ELITES.common;
     this.level = Item.normalizeLevel(level);
@@ -27,9 +28,10 @@ class Enemy extends Fighter {
       : Enemy.rollInventory(this.elite, this.level);
     this.gold = gold ?? Enemy.rollGold(this.elite, this.level);
     this.buffs = (buffs ?? []).map(buff => ({ ...buff }));
-    this.needs = needs ? { ...needs } : Enemy.rollNeeds();
+    this.needs = Needs.normalize(needs ?? Enemy.rollNeeds());
 
     if (!equipment) this.equipment = Enemy.rollEquipment(this.elite, this.level);
+    if (isGenerated) this.normalizeFoodAndWater();
     this.hp = Math.min(hp ?? this.maxHp, this.maxHp);
   }
 
@@ -103,8 +105,14 @@ class Enemy extends Fighter {
     return equipment;
   }
 
-  get title() { return `${this.race.name}${this.elite.id === 'king' ? '-король' : ''}, рів. ${this.level}`; }
+  get raceName() { return this.race.enemyName ?? this.race.name; }
+  get title() { return `${this.raceName}${this.elite.id === 'king' ? '-король' : ''}, рів. ${this.level}`; }
   get xpReward() { return BALANCE.enemy.xpBase + this.level * BALANCE.enemy.xpPerLevel; }
+  get challengeStake() { return this.gold; }
+
+  missingChallengeGold(playerGold) {
+    return Math.max(0, this.challengeStake - Math.max(0, Number(playerGold) || 0));
+  }
 
   get effectiveStrength() {
     const raw = this.statWithGear('strength');
@@ -121,36 +129,87 @@ class Enemy extends Fighter {
     return Math.max(1, raw + Needs.bonusFor(this, 'sleep', raw));
   }
 
-  /** Может применить один полезный расходник перед боем. */
-  usePreBattleConsumable() {
-    if (Math.random() >= BALANCE.enemy.preBattleConsumableChance) return null;
+  /** При генерации сразу употребить всю имеющуюся еду и воду по необходимости. */
+  normalizeFoodAndWater() {
+    for (const need of ['hunger', 'thirst']) {
+      const candidates = this.inventory.items.filter(item => item.effect?.[need]);
+      while (this.needs[need] < BALANCE.needs.max && candidates.length) {
+        const item = candidates.shift();
+        this.needs[need] = Math.min(
+          BALANCE.needs.max,
+          this.needs[need] + item.effect[need]
+        );
+        this.inventory.remove(item);
+      }
+    }
+  }
+
+  /** Перед боем может применить один эликсир с шансом от разницы уровней. */
+  usePreBattleElixir(playerLevel) {
     const candidates = this.inventory.items.filter(item =>
-      item.isConsumable && item.canUseAtLevel(this.level)
-        && (item.effect?.buff
-          || (item.effect?.hp && this.hp < this.maxHp)
-          || (item.effect?.hunger && this.needs.hunger < BALANCE.needs.max)
-          || (item.effect?.thirst && this.needs.thirst < BALANCE.needs.max)
-          || (item.effect?.sleep && this.needs.sleep < BALANCE.needs.max))
-    );
-    if (!candidates.length) return null;
+      item.effect?.buff && item.canUseAtLevel(this.level));
+    if (!candidates.length || Math.random() >= this.elixirChance(playerLevel)) return null;
 
     const item = candidates[Math.floor(Math.random() * candidates.length)];
-    if (item.effect.hp) this.hp = Math.min(this.maxHp, this.hp + item.effect.hp);
-    if (item.effect.hunger) {
-      this.needs.hunger = Math.min(BALANCE.needs.max, this.needs.hunger + item.effect.hunger);
-    }
-    if (item.effect.thirst) {
-      this.needs.thirst = Math.min(BALANCE.needs.max, this.needs.thirst + item.effect.thirst);
-    }
-    if (item.effect.sleep) {
-      this.needs.sleep = Math.min(BALANCE.needs.max, this.needs.sleep + item.effect.sleep);
-    }
-    if (item.effect.buff) {
-      const buff = item.effect.buff;
-      this.addBuff(buff.stat, buff.value, buff.fights);
-    }
+    const buff = item.effect.buff;
+    this.addBuff(buff.stat, buff.value, buff.fights);
     this.inventory.remove(item);
     return item;
+  }
+
+  elixirChance(playerLevel) {
+    const chances = BALANCE.enemy.elixirChance;
+    if (this.level < playerLevel) return chances.lowerLevel;
+    if (this.level > playerLevel) return chances.higherLevel;
+    return chances.equalLevel;
+  }
+
+  /** Надеть лучшие предметы из инвентаря, возвращая заменённые вещи обратно. */
+  equipBestInventoryItems() {
+    const equipped = [];
+    for (const slot of Object.keys(EQUIPMENT_SLOTS)) {
+      const candidates = this.inventory.items.filter(item =>
+        item.slot === slot && item.canUseAtLevel(this.level));
+      const best = candidates.reduce((winner, item) =>
+        !winner || item.powerScore > winner.powerScore ? item : winner, null);
+      const current = this.equipment[slot];
+      if (!best || (current && best.powerScore <= current.powerScore)) continue;
+
+      this.inventory.remove(best);
+      if (current) this.inventory.add(current);
+      this.equipment[slot] = best;
+      equipped.push(best);
+    }
+    this.clampHp();
+    return equipped;
+  }
+
+  /** После победы гарантированно лечиться доступными зельями до полного HP. */
+  useHealingPotions() {
+    const used = [];
+    while (this.hp < this.maxHp) {
+      const potions = this.inventory.items.filter(item =>
+        item.effect?.hp && item.canUseAtLevel(this.level));
+      if (!potions.length) break;
+
+      const missingHp = this.maxHp - this.hp;
+      const sufficient = potions
+        .filter(item => item.effect.hp >= missingHp)
+        .sort((a, b) => a.effect.hp - b.effect.hp)[0];
+      const item = sufficient ?? potions.sort((a, b) => b.effect.hp - a.effect.hp)[0];
+      this.hp = Math.min(this.maxHp, this.hp + item.effect.hp);
+      this.inventory.remove(item);
+      used.push(item);
+    }
+    return used;
+  }
+
+  /** Подготовиться после победы над игроком и использования захваченной добычи. */
+  prepareAfterVictory() {
+    return {
+      equipped: this.equipBestInventoryItems(),
+      potions: this.useHealingPotions(),
+    };
   }
 
   toJSON() {

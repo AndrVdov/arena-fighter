@@ -28,6 +28,8 @@ class Game {
 
   /** Запуск: восстанавливаем последнюю сессию или показываем главное меню. */
   start() {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
     this.registerScreens([
       new MenuScreen(this),
       new HomeScreen(this),
@@ -245,12 +247,17 @@ class Game {
         changed = true;
       }
 
+      if (player.arenaLineup.regenerateEnemies(BALANCE.regen.percentPerTick)) {
+        changed = true;
+      }
+
       if (changed) {
         this.hud.render();
         if (resting) {
           this.effectsBar.render();     // порог сна мог включить/выключить бафф
           this.openModal?.refresh();    // живой прогресс в окне действия
         }
+        this.save();
       }
 
       this.finishActionIfDone();

@@ -29,7 +29,7 @@ class EffectsBar {
 
   /** Эффекты героя для HUD и увеличенного боевого представления. */
   static collectPlayerEffects(player, game = null) {
-    const effects = [];
+    const effects = EffectsBar.collectRaceEffects(player);
 
     // Длительное действие: отдых или сон ускоряют реген HP
     if (game?.activeAction === 'rest') {
@@ -59,8 +59,8 @@ class EffectsBar {
   /** Баффы и штрафы потребностей подходят и игроку, и противнику. */
   static collectNeedEffects(fighter) {
     const effects = [];
-    for (const [need, info] of Object.entries(Needs.LABELS)) {
-      const bonus = Needs.bonusFor(fighter, need, fighter.statWithGear(info.stat));
+    for (const need of Object.keys(Needs.LABELS)) {
+      const { info, bonus } = Needs.effectFor(fighter, need);
 
       if (bonus > 0) {
         effects.push({
@@ -83,9 +83,20 @@ class EffectsBar {
 
   static collectEnemyEffects(enemy) {
     return [
+      ...EffectsBar.collectRaceEffects(enemy),
       ...EffectsBar.collectBuffEffects(enemy),
       ...EffectsBar.collectNeedEffects(enemy),
     ];
+  }
+
+  static collectRaceEffects(fighter) {
+    const race = fighter.race;
+    return [{
+      type: 'neutral',
+      icon: 'race',
+      text: `${race.name}: ${Fighter.raceTraitText(race)}`,
+      hint: `Расова особливість «${race.name}»: ${Fighter.raceTraitText(race)}`,
+    }];
   }
 
   static collectBuffEffects(fighter) {

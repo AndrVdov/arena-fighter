@@ -114,6 +114,13 @@ class Item {
     return RARITIES[this.rarity];
   }
 
+  /** Простая оценка суммарной силы экипировки для автоматического выбора. */
+  get powerScore() {
+    if (!this.isEquipment) return 0;
+    return Object.values(this.bonuses)
+      .reduce((total, value) => total + Math.max(0, Number(value) || 0), 0);
+  }
+
   canUseAtLevel(playerLevel) {
     return !this.levelScaled || Item.normalizeLevel(playerLevel) >= this.level;
   }

@@ -11,29 +11,42 @@
  */
 class Combat {
 
+  static MODES = {
+    training: { id: 'training', hpThreshold: 0.5 },
+    lethal: { id: 'lethal', hpThreshold: 0 },
+  };
+
   /**
    * Просчитать бой игрока с противником.
    * @returns {{ events: Array, playerWon: boolean, playerHpLeft: number }}
    */
-  static simulate(player, enemy, openingEvents = []) {
+  static simulate(player, enemy, openingEvents = [], modeId = 'lethal') {
     const a = Combat.fighterFromPlayer(player);
     const b = Combat.fighterFromEnemy(enemy);
     const events = [];
+    const mode = Combat.MODES[modeId] ?? Combat.MODES.lethal;
+    let loser = null;
 
     events.push(...openingEvents);
-    events.push({ type: 'info', text: `⚔️ Бій починається: ${a.name} проти ${b.name}!` });
+    events.push({
+      type: 'info',
+      text: `⚔️ ${mode.id === 'training' ? 'Тренувальний' : 'Смертельний'} бій починається: ${a.name} проти ${b.name}!`,
+    });
 
     // Первым бьёт более ловкий (при равенстве — игрок)
     let [attacker, defender] = a.agility >= b.agility ? [a, b] : [b, a];
 
     // Предохранитель от бесконечного боя (урон всегда > 0, так что не сработает)
     for (let turn = 0; turn < 200; turn++) {
-      events.push(Combat.strike(attacker, defender));
+      events.push(Combat.strike(attacker, defender, mode.id === 'training' ? 1 : 0));
 
-      if (defender.hp <= 0) {
+      if (defender.hp / defender.maxHp <= mode.hpThreshold) {
+        loser = defender;
         events.push({
           type: 'info',
-          text: `🏆 ${attacker.name} перемагає!`,
+          text: mode.id === 'training'
+            ? `🏳️ ${defender.name} опускається до половини здоров'я. ${attacker.name} перемагає!`
+            : `🏆 ${attacker.name} перемагає!`,
         });
         break;
       }
@@ -42,14 +55,15 @@ class Combat {
 
     return {
       events,
-      playerWon: b.hp <= 0,
+      mode: mode.id,
+      playerWon: loser?.side === 'enemy',
       playerHpLeft: a.hp,
       enemyHpLeft: b.hp,
     };
   }
 
   /** Один удар: уворот, крит или обычное попадание. */
-  static strike(attacker, defender) {
+  static strike(attacker, defender, minimumHp = 0) {
     const cfg = BALANCE.combat;
     const attackName = Drops.randomOf(ATTACK_NAMES);
 
@@ -80,7 +94,9 @@ class Combat {
     const isCrit = Math.random() < critChance;
     if (isCrit) damage *= cfg.critMultiplier;
 
-    defender.hp = Math.max(0, defender.hp - damage);
+    const hpBeforeStrike = defender.hp;
+    defender.hp = Math.max(minimumHp, defender.hp - damage);
+    damage = hpBeforeStrike - defender.hp;
 
     return {
       type: isCrit ? 'crit' : 'hit',

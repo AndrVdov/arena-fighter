@@ -70,6 +70,21 @@ class ArenaLineup {
     this.revenge = this.revenge.filter(entry => entry.enemy !== enemy);
   }
 
+  /** Заменить бойца в том же слоте или записи мести. */
+  replace(currentEnemy, updatedEnemy) {
+    for (const roster of Object.values(this.rosters)) {
+      const index = roster.indexOf(currentEnemy);
+      if (index !== -1) {
+        roster[index] = updatedEnemy;
+        return true;
+      }
+    }
+    const revengeEntry = this.revenge.find(entry => entry.enemy === currentEnemy);
+    if (!revengeEntry) return false;
+    revengeEntry.enemy = updatedEnemy;
+    return true;
+  }
+
   /** Победитель игрока покидает свой ростер и получает новый личный час. */
   moveToRevenge(currentEnemy, updatedEnemy) {
     this.remove(currentEnemy);
@@ -84,6 +99,23 @@ class ArenaLineup {
     const before = this.revenge.length;
     this.revenge = this.revenge.filter(entry => entry.expiresAt > now);
     return before - this.revenge.length;
+  }
+
+  /** Естественная регенерация всех выживших противников арены. */
+  regenerateEnemies(percentPerTick, now = Date.now()) {
+    let changed = false;
+    const regularEnemies = Object.values(this.rosters).flat().filter(Boolean);
+    const revengeEnemies = this.revenge
+      .filter(entry => entry.expiresAt > now)
+      .map(entry => entry.enemy);
+    for (const enemy of new Set([...regularEnemies, ...revengeEnemies])) {
+      if (enemy.hp >= enemy.maxHp) continue;
+
+      const amount = Math.max(1, Math.round(enemy.maxHp * percentPerTick));
+      enemy.hp = Math.min(enemy.maxHp, enemy.hp + amount);
+      changed = true;
+    }
+    return changed;
   }
 
   toJSON() {

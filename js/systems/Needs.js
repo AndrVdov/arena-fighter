@@ -30,6 +30,18 @@ class Needs {
     },
   };
 
+  /** Привести сохранённые шкалы к полному безопасному набору 0..max. */
+  static normalize(values = {}, fallback = BALANCE.needs.start) {
+    const normalized = {};
+    for (const need of Object.keys(Needs.LABELS)) {
+      const value = Number(values?.[need]);
+      normalized[need] = Number.isFinite(value)
+        ? Math.min(BALANCE.needs.max, Math.max(0, value))
+        : fallback;
+    }
+    return normalized;
+  }
+
   /**
    * Бонус шкалы к её характеристике: ±10% от значения характеристики
    * (минимум 1, чтобы эффект был заметен и на старте).
@@ -43,6 +55,17 @@ class Needs {
     if (value >= cfg.buffAbove) return size;
     if (value <= cfg.debuffBelow) return -size;
     return 0;
+  }
+
+  /** Точное состояние шкалы и её текущий модификатор характеристики. */
+  static effectFor(fighter, need) {
+    const info = Needs.LABELS[need];
+    const bonus = Needs.bonusFor(fighter, need, fighter.statWithGear(info.stat));
+    return {
+      info,
+      bonus,
+      state: bonus > 0 ? 'high' : bonus < 0 ? 'low' : 'normal',
+    };
   }
 
   /** Расход потребностей за один бой на арене. */
@@ -62,8 +85,8 @@ class Needs {
   static statusLines(player) {
     const lines = [];
 
-    for (const [need, info] of Object.entries(Needs.LABELS)) {
-      const bonus = Needs.bonusFor(player, need, player.statWithGear(info.stat));
+    for (const need of Object.keys(Needs.LABELS)) {
+      const { info, bonus } = Needs.effectFor(player, need);
 
       if (bonus > 0) {
         lines.push({ type: 'buff', text: `${info.icon} ${info.fullLabel}: +${bonus} до ${info.statName}` });

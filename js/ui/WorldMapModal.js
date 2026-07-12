@@ -73,7 +73,7 @@ class WorldMapModal extends Modal {
               style="--map-x:${map.x}%; --map-y:${map.y}%; --marker-size:${map.size}%">
         ${isCurrent ? `
           <span class="world-map-hero" title="Герой зараз тут">
-            <img src="${Hud.HERO_PORTRAIT}" alt="${this.game.player.name}">
+            <img src="${this.game.player.portrait}" alt="${this.game.player.name}">
           </span>
         ` : ''}
         <img class="world-map-marker__image" src="${map.image}" alt="">

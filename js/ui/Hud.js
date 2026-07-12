@@ -38,6 +38,7 @@ class Hud {
     bed: '<path d="M3 18V8M21 18v-7H8a3 3 0 0 0-3 3v1h16M3 18v3M21 18v3M5 11h3"/>',
     potion: '<path d="M9 3h6M10 3v4l-4.5 8.2A4 4 0 0 0 9 21h6a4 4 0 0 0 3.5-5.8L14 7V3M7.2 14h9.6"/>',
     elixir: '<path d="M9 3h6M10 3v5l-4 7a4 4 0 0 0 3.5 6h5a4 4 0 0 0 3.5-6l-4-7V3M8 14h8"/>',
+    race: '<circle cx="12" cy="8" r="4"/><path d="M5 21c.8-5 3.1-7.5 7-7.5S18.2 16 19 21M4 5l3 1M20 5l-3 1"/>',
     star: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
   };
 
@@ -58,7 +59,7 @@ class Hud {
     this.root.innerHTML = `
       <div class="hud__portrait-block">
         <div class="hud__avatar">
-          <img src="${Hud.HERO_PORTRAIT}" alt="Портрет героя ${p.name}">
+          <img src="${p.portrait}" alt="Портрет героя ${p.name}">
         </div>
         <span class="hud__level-medallion" title="Рівень героя">${p.level}</span>
         ${p.freeStatPoints > 0 ? `
