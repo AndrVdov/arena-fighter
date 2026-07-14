@@ -1,5 +1,5 @@
 /**
- * ОКНО ДЛИТЕЛЬНОГО ДЕЙСТВИЯ (отдых / сон)
+ * ОКНО ДЛИТЕЛЬНОГО ДЕЙСТВИЯ (отдых / сон / работа)
  * ---------------------------------------
  * Действие идёт, ПОКА окно открыто: Game.startRegen каждый тик
  * проверяет game.activeAction и применяет эффекты. Закрытие окна
@@ -7,7 +7,7 @@
  */
 class ActionModal extends Modal {
 
-  /** Имя действия для game.activeAction ('rest' / 'sleep'). */
+  /** Имя действия для game.activeAction ('rest' / 'sleep' / 'mine'). */
   get actionName() {
     throw new Error('ActionModal должен указать actionName');
   }

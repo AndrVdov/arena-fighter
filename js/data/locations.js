@@ -47,4 +47,32 @@ const LOCATIONS = {
       size: 15,
     },
   },
+
+  river: {
+    id: 'river',
+    uiIcon: 'thirst',
+    name: 'Річка',
+    subtitle: 'Відпочинь у затінку та втамуй спрагу',
+    mapHint: 'Відпочинок на березі та чиста питна вода',
+    mapMarker: {
+      image: 'assets/map/locations/river.png',
+      x: 48,
+      y: 54,
+      size: 14,
+    },
+  },
+
+  mine: {
+    id: 'mine',
+    uiIcon: 'mine',
+    name: 'Шахта',
+    subtitle: 'Важка праця приносить чесне золото',
+    mapHint: 'Працюй під землею та заробляй золото',
+    mapMarker: {
+      image: 'assets/map/locations/mine.png',
+      x: 44,
+      y: 27,
+      size: 14,
+    },
+  },
 };

@@ -43,7 +43,7 @@ class MenuScreen extends Screen {
 
     container.innerHTML = `
       <header class="hero-select__header">
-        <div class="hero-select__eyebrow">Arena Fighter</div>
+        <div class="hero-select__eyebrow">${APP.name} · v${APP.version}</div>
         <h1 class="hero-select__title">Обери героя</h1>
         <p class="hero-select__subtitle">Шість шляхів до слави</p>
       </header>
@@ -155,7 +155,7 @@ class MenuScreen extends Screen {
   }
 
   locationName(location) {
-    return ({ home: 'Дім', arena: 'Арена', shop: 'Крамниця' })[location] ?? 'Дім';
+    return LOCATIONS[location]?.name ?? LOCATIONS.home.name;
   }
 
   escapeHtml(value) {

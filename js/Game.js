@@ -33,6 +33,8 @@ class Game {
     this.registerScreens([
       new MenuScreen(this),
       new HomeScreen(this),
+      new RiverScreen(this),
+      new MineScreen(this),
       new ArenaScreen(this),
       new ShopScreen(this),
       new StorageScreen(this),
@@ -45,6 +47,7 @@ class Game {
       equipment: new EquipmentModal(this),
       rest:      new RestModal(this),
       sleep:     new SleepModal(this),
+      mine:      new MineModal(this),
       map:       new WorldMapModal(this),
     };
     this.travel = new TravelOverlay(this);
@@ -227,7 +230,7 @@ class Game {
       const player = this.player;
       if (!player || this.inCombat) return;
 
-      const resting = this.activeAction !== null;
+      const actionActive = this.activeAction !== null;
       let changed = false;
 
       // Реген HP: процент от максимума; отдых ×3, сон ×4
@@ -247,6 +250,12 @@ class Game {
         changed = true;
       }
 
+      if (this.activeAction === 'mine') {
+        const earnedGold = Mining.workTick(player);
+        this.openModal?.recordEarnings(earnedGold);
+        changed = true;
+      }
+
       const enemiesRegenerated = player.arenaLineup.regenerateEnemies(BALANCE.regen.percentPerTick);
       if (enemiesRegenerated) {
         changed = true;
@@ -254,7 +263,7 @@ class Game {
 
       if (changed) {
         this.hud.render();
-        if (resting) {
+        if (actionActive) {
           this.effectsBar.render();     // порог сна мог включить/выключить бафф
           this.openModal?.refresh();    // живой прогресс в окне действия
         }

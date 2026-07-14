@@ -97,7 +97,7 @@ class ArenaScreen extends LocationScreen {
           <div class="battle-mode" role="radiogroup" aria-label="Режим бою">
             <button class="battle-mode__option battle-mode__option--active" data-battle-mode="training"
                     role="radio" aria-checked="true">
-              <b>Тренувальний</b><small>До 50% HP · ризик усього золота</small>
+              <b>Тренувальний</b><small>До 50% HP · ставка суперника</small>
             </button>
             <button class="battle-mode__option battle-mode__option--lethal" data-battle-mode="lethal"
                     role="radio" aria-checked="false">
@@ -640,13 +640,13 @@ class ArenaScreen extends LocationScreen {
         player.arenaLineup.replace(rosterEnemy, enemy);
       }
     } else {
-      rewards.lostGold = player.gold;
+      rewards.lostGold = lethal ? player.gold : Math.min(player.gold, enemy.gold);
       if (lethal) {
         rewards.lostItems = player.inventory.transferAllTo(enemy.inventory);
         rewards.lostEquipment = player.drainEquipmentTo(enemy.inventory);
       }
-      enemy.gold += player.gold;
-      player.gold = 0;
+      enemy.gold += rewards.lostGold;
+      player.gold -= rewards.lostGold;
       player.hp = lethal ? BALANCE.combat.defeatHp : Math.max(1, result.playerHpLeft);
       if (lethal) player.location = 'home';
       enemy.hp = Math.max(1, result.enemyHpLeft);

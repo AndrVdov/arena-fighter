@@ -65,6 +65,12 @@ const BALANCE = {
     sleepPerTick: 2,    // сколько шкалы сна восполняет каждый тик во время сна
   },
 
+  // Работа в шахте: базовый доход и бонус за действующую Силу.
+  mining: {
+    baseGoldPerTick: 1,
+    strengthPerBonusGold: 5,
+  },
+
   // Боевые формулы
   combat: {
     baseDamage: 3,          // базовый урон любого бойца
