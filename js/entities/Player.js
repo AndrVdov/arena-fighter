@@ -127,6 +127,13 @@ class Player extends Fighter {
     return levelsGained;
   }
 
+  /** Потерять часть прогресса текущего уровня, не понижая сам уровень. */
+  loseCurrentLevelXp(rate) {
+    const lostXp = Math.floor(this.xp * Math.max(0, rate));
+    this.xp = Math.max(0, this.xp - lostXp);
+    return lostXp;
+  }
+
   /** Вложить свободное очко в характеристику (strength / agility / vitality). */
   spendStatPoint(stat) {
     if (this.freeStatPoints <= 0) return false;

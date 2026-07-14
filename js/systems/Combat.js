@@ -84,7 +84,9 @@ class Combat {
 
     // Урон с разбросом
     const spread = 1 + (Math.random() * 2 - 1) * cfg.variance;
-    let damage = Math.max(1, Math.round(attacker.attackDamage * spread));
+    const damageMultiplier = Fighter.healthConditionFor(attacker.hp, attacker.maxHp)
+      ?.damageMultiplier ?? 1;
+    let damage = Math.max(1, Math.round(attacker.baseAttackDamage * spread * damageMultiplier));
 
     // Крит: ловкость атакующего против ловкости цели
     const critChance = Combat.chance(
@@ -120,7 +122,7 @@ class Combat {
       icon: '🛡️',
       hp: player.hp,
       maxHp: player.maxHp,
-      attackDamage: player.attackDamage,
+      baseAttackDamage: player.baseAttackDamage,
       agility: player.effectiveAgility,
       dodgeExtra: player.dodgeExtra,
     };
@@ -133,7 +135,7 @@ class Combat {
       icon: enemy.race.icon,
       hp: enemy.hp,
       maxHp: enemy.maxHp,
-      attackDamage: enemy.attackDamage,
+      baseAttackDamage: enemy.baseAttackDamage,
       agility: enemy.effectiveAgility,
       dodgeExtra: enemy.dodgeExtra,
     };

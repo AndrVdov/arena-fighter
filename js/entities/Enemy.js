@@ -108,6 +108,10 @@ class Enemy extends Fighter {
   get raceName() { return this.race.enemyName ?? this.race.name; }
   get title() { return `${this.raceName}${this.elite.id === 'king' ? '-король' : ''}, рів. ${this.level}`; }
   get xpReward() { return BALANCE.enemy.xpBase + this.level * BALANCE.enemy.xpPerLevel; }
+  xpRewardFor(mode) {
+    return this.xpReward * (mode === 'lethal' ? BALANCE.xp.lethalVictoryMultiplier : 1);
+  }
+  get canAcceptChallenge() { return this.hp >= this.maxHp; }
   get challengeStake() { return this.gold; }
 
   missingChallengeGold(playerGold) {

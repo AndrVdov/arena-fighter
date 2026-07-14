@@ -25,6 +25,8 @@ const BALANCE = {
   xp: {
     baseXp: 100,
     growth: 1.4,
+    lethalVictoryMultiplier: 3,
+    lethalDefeatLossRate: 0.10,
   },
 
   // Шкалы потребностей (голод / жажда / сон), значения 0..max.
@@ -58,17 +60,35 @@ const BALANCE = {
     percentPerTick: 0.01, // 1% макс. HP за тик (минимум 1 HP)
   },
 
+  // Дебафы от низкого здоровья. Проверяются от более тяжёлого к лёгкому.
+  healthConditions: {
+    nearDeath: {
+      threshold: 0.25,
+      travelMultiplier: 3,
+      recoveryDivisor: 3,
+      damageMultiplier: 0.25,
+    },
+    wounded: {
+      threshold: 0.50,
+      travelMultiplier: 2,
+      recoveryDivisor: 2,
+      damageMultiplier: 0.50,
+    },
+  },
+
   // Действия дома: отдых и сон — процессы, идущие пока открыто их окно
   rest: {
-    restMultiplier: 3,  // отдых: реген ×3 (3% макс. HP за тик)
-    sleepMultiplier: 4, // сон: реген ×4 (4% макс. HP за тик)
-    sleepPerTick: 2,    // сколько шкалы сна восполняет каждый тик во время сна
+    restMultiplier: 2,  // отдых: реген ×2 (2% макс. HP за тик)
+    sleepMultiplier: 3, // сон: реген ×3 (3% макс. HP за тик)
+    sleepPerTick: 1,    // сколько шкалы сна восполняет каждый тик во время сна
   },
 
   // Работа в шахте: базовый доход и бонус за действующую Силу.
   mining: {
     baseGoldPerTick: 1,
-    strengthPerBonusGold: 5,
+    strengthPerBonusGold: 10,
+    goldChancePerTick: 0.30,
+    sleepCostPerTick: 4,
   },
 
   // Боевые формулы

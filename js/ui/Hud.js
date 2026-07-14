@@ -25,6 +25,8 @@ class Hud {
     hunger: '<path d="M7 3v7M4.5 3v5A2.5 2.5 0 0 0 7 10.5V21M15 3v18M15 3c4 2.2 4 8 0 10"/>',
     thirst: '<path d="M12 2.8S6.5 9.3 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.3 12 2.8 12 2.8Z"/>',
     sleep: '<path d="M18.8 15.5A8 8 0 0 1 8.5 5.2 8 8 0 1 0 18.8 15.5Z"/>',
+    wounded: '<path d="M5 19 19 5M7 5l12 12M4 15l5 5M15 4l5 5"/>',
+    nearDeath: '<path d="M5 10a7 7 0 1 1 14 0v5l-2 2H7l-2-2v-5Z"/><path d="M9 11h.01M15 11h.01M10 17v3M14 17v3"/>',
     stats: '<path d="M6 3.5h12v17H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
     inventory: '<path d="M6 8h12l1 13H5L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2M8 12h8"/>',
     chest: '<path d="M3 9h18v11H3z"/><path d="M4 9V6h16v3M3 13h18M10 12h4v4h-4z"/>',

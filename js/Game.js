@@ -19,7 +19,7 @@ class Game {
     this.currentScreenId = null;
     this.modals = {};
     this.openModal = null;    // открытое окно-класс (Modal)
-    this.activeAction = null; // длительное действие: 'rest' / 'sleep' / null
+    this.activeAction = null; // длительное действие: 'rest' / 'sleep' / 'mine' / null
     this.inCombat = false;    // бой проигрывается: естественная регенерация на паузе
     this.isTraveling = false;
     this.travel = null;
@@ -160,9 +160,9 @@ class Game {
     this.modals.map.close();
     if (originId === locationId) return;
 
-    this.travel.start(LOCATIONS[originId], LOCATIONS[locationId], () => {
+    this.travel.start(LOCATIONS[originId], LOCATIONS[locationId], travelResult => {
       Needs.spend(this.player, BALANCE.travel.needsCost);
-      this.player.worldTimeMinutes += BALANCE.travel.gameMinutes;
+      this.player.worldTimeMinutes += travelResult.gameMinutes;
       this.showScreen(locationId);
       this.refresh();
     });
@@ -233,27 +233,44 @@ class Game {
       const actionActive = this.activeAction !== null;
       let changed = false;
 
-      // Реген HP: процент от максимума; отдых ×3, сон ×4
+      // Реген HP: процент от максимума с множителем текущего действия.
       if (player.hp < player.maxHp) {
         const multiplier =
           this.activeAction === 'rest' ? BALANCE.rest.restMultiplier :
           this.activeAction === 'sleep' ? BALANCE.rest.sleepMultiplier : 1;
-        const rate = Math.max(1, Math.round(player.maxHp * BALANCE.regen.percentPerTick * multiplier));
+        const baseRate = Math.max(1, Math.round(
+          player.maxHp * BALANCE.regen.percentPerTick * multiplier
+        ));
+        const rate = player.recoveryAmount(baseRate, 'hp');
 
-        player.hp = Math.min(player.maxHp, player.hp + rate);
-        changed = true;
+        if (rate > 0) {
+          player.hp = Math.min(player.maxHp, player.hp + rate);
+          if (player.hp >= player.maxHp) player.clearRecoveryProgress('hp');
+          changed = true;
+        }
       }
 
       // Сон наполняет свою шкалу
       if (this.activeAction === 'sleep' && player.needs.sleep < BALANCE.needs.max) {
-        player.needs.sleep = Math.min(BALANCE.needs.max, player.needs.sleep + BALANCE.rest.sleepPerTick);
-        changed = true;
+        const amount = player.recoveryAmount(BALANCE.rest.sleepPerTick, 'sleep');
+        if (amount > 0) {
+          player.needs.sleep = Math.min(BALANCE.needs.max, player.needs.sleep + amount);
+          if (player.needs.sleep >= BALANCE.needs.max) player.clearRecoveryProgress('sleep');
+          changed = true;
+        }
       }
 
       if (this.activeAction === 'mine') {
-        const earnedGold = Mining.workTick(player);
-        this.openModal?.recordEarnings(earnedGold);
-        changed = true;
+        const result = Mining.workTick(player);
+        if (!result.worked) {
+          this.modals.mine.close();
+          this.toast(player.healthCondition
+            ? 'Через стан здоров\'я герой припинив роботу в шахті.'
+            : 'Герой виснажився та припинив роботу в шахті.');
+          return;
+        }
+        this.openModal?.recordEarnings(result.earnedGold);
+        changed = changed || result.earnedGold > 0 || result.sleepSpent > 0;
       }
 
       const enemiesRegenerated = player.arenaLineup.regenerateEnemies(BALANCE.regen.percentPerTick);
@@ -263,8 +280,8 @@ class Game {
 
       if (changed) {
         this.hud.render();
+        this.effectsBar.render();
         if (actionActive) {
-          this.effectsBar.render();     // порог сна мог включить/выключить бафф
           this.openModal?.refresh();    // живой прогресс в окне действия
         }
         if (enemiesRegenerated && this.currentScreenId === 'arena') {
@@ -277,7 +294,7 @@ class Game {
     }, BALANCE.regen.intervalMs);
   }
 
-  /** Автозавершение действий: HP полон — отдых окончен, сон полон — герой выспался. */
+  /** Автозавершение действий: отдых закрывается, сон показывает результат. */
   finishActionIfDone() {
     const player = this.player;
 
@@ -285,8 +302,10 @@ class Game {
       this.openModal?.close();
       this.toast('Герой відпочив — повний сил!');
     } else if (this.activeAction === 'sleep' && player.needs.sleep >= BALANCE.needs.max) {
-      this.openModal?.close();
-      this.toast('Герой виспався!');
+      this.modals.sleep.complete();
+    } else if (this.activeAction === 'mine' && player.needs.sleep <= 0) {
+      this.modals.mine.close();
+      this.toast('Герой виснажився та припинив роботу в шахті.');
     }
   }
 

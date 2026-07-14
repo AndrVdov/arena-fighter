@@ -25,6 +25,11 @@ class Modal {
     return 'Закрити';
   }
 
+  /** Дополнительный класс панели для тематических окон. */
+  get panelClass() {
+    return '';
+  }
+
   /** HTML содержимого. Переопределяется наследником. */
   contentHtml() {
     return '';
@@ -39,7 +44,7 @@ class Modal {
     this.overlay = document.createElement('div');
     this.overlay.className = 'overlay';
     this.overlay.innerHTML = `
-      <div class="panel modal">
+      <div class="panel modal${this.panelClass ? ` ${this.panelClass}` : ''}">
         <div class="panel__title">${this.title}</div>
         <div class="modal__content"></div>
         <button class="btn modal__close">${this.closeLabel}</button>
@@ -62,7 +67,9 @@ class Modal {
   /** Перерисовать содержимое (после действия игрока). */
   refresh() {
     if (!this.overlay) return;
+    this.overlay.querySelector('.panel__title').innerHTML = this.title;
     this.overlay.querySelector('.modal__content').innerHTML = this.contentHtml();
+    this.overlay.querySelector('.modal__close').textContent = this.closeLabel;
   }
 
   close() {

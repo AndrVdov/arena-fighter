@@ -6,6 +6,19 @@
  */
 class Fighter {
 
+  static healthConditionFor(hp, maxHp) {
+    const ratio = maxHp > 0 ? hp / maxHp : 0;
+    const conditions = BALANCE.healthConditions;
+
+    if (ratio < conditions.nearDeath.threshold) {
+      return { id: 'nearDeath', ...conditions.nearDeath };
+    }
+    if (ratio < conditions.wounded.threshold) {
+      return { id: 'wounded', ...conditions.wounded };
+    }
+    return null;
+  }
+
   static applyRaceModifier(value, race, stat) {
     const modifier = race?.statModifiers?.[stat] ?? 0;
     return Math.max(1, Math.round(value * (1 + modifier)));
@@ -69,10 +82,44 @@ class Fighter {
       + this.equipmentBonus('maxHp');
   }
 
-  get attackDamage() {
+  get baseAttackDamage() {
     return Math.round(BALANCE.combat.baseDamage
       + this.effectiveStrength * BALANCE.combat.damagePerStrength
       + this.equipmentBonus('damage'));
+  }
+
+  get attackDamage() {
+    return Math.max(1, Math.round(this.baseAttackDamage * this.damageMultiplier));
+  }
+
+  get healthCondition() {
+    return Fighter.healthConditionFor(this.hp, this.maxHp);
+  }
+
+  get damageMultiplier() {
+    return this.healthCondition?.damageMultiplier ?? 1;
+  }
+
+  get recoveryDivisor() {
+    return this.healthCondition?.recoveryDivisor ?? 1;
+  }
+
+  get travelMultiplier() {
+    return this.healthCondition?.travelMultiplier ?? 1;
+  }
+
+  /** Целое восстановление с накоплением дробной части между тиками. */
+  recoveryAmount(baseAmount, channel = 'hp') {
+    this._recoveryProgress ??= {};
+    const total = (this._recoveryProgress[channel] ?? 0)
+      + baseAmount / this.recoveryDivisor;
+    const amount = Math.floor(total + Number.EPSILON);
+    this._recoveryProgress[channel] = total - amount;
+    return amount;
+  }
+
+  clearRecoveryProgress(channel) {
+    if (this._recoveryProgress) this._recoveryProgress[channel] = 0;
   }
 
   get dodgeExtra() { return this.equipmentBonus('dodge'); }

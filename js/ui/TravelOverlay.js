@@ -18,6 +18,9 @@ class TravelOverlay {
     if (this.overlay) return false;
 
     const cfg = BALANCE.travel;
+    const multiplier = this.game.player?.travelMultiplier ?? 1;
+    const durationMs = cfg.durationMs * multiplier;
+    const gameMinutes = cfg.gameMinutes * multiplier;
     this.backgroundElements = [
       document.getElementById('screen'),
       document.getElementById('hud-wrap'),
@@ -28,7 +31,7 @@ class TravelOverlay {
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'travel-overlay';
-    this.overlay.style.setProperty('--travel-duration', `${cfg.durationMs}ms`);
+    this.overlay.style.setProperty('--travel-duration', `${durationMs}ms`);
     this.overlay.innerHTML = `
       <section class="travel-panel" role="dialog" aria-modal="true" aria-labelledby="travel-title">
         <span class="travel-panel__eyebrow">В дорозі</span>
@@ -41,7 +44,7 @@ class TravelOverlay {
           <span class="travel-route__point">${Hud.icon(destination.uiIcon)}</span>
         </div>
 
-        <p>Час у дорозі: ${cfg.gameMinutes} хвилин</p>
+        <p>Час у дорозі: ${gameMinutes} хвилин${multiplier > 1 ? ` · ×${multiplier} через стан здоров'я` : ''}</p>
       </section>
     `;
 
@@ -51,8 +54,8 @@ class TravelOverlay {
 
     this.timer = setTimeout(() => {
       this.finish();
-      onArrival();
-    }, cfg.durationMs);
+      onArrival({ gameMinutes, multiplier });
+    }, durationMs);
     return true;
   }
 

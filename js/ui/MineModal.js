@@ -18,6 +18,18 @@ class MineModal extends ActionModal {
     return 'Завершити роботу';
   }
 
+  canStart() {
+    if (this.game.player.healthCondition) {
+      this.game.toast('Поранений герой не може працювати в шахті. Спочатку відновіть здоров\'я.');
+      return false;
+    }
+    if (this.game.player.needs.sleep <= 0) {
+      this.game.toast('Герой надто виснажений для роботи в шахті.');
+      return false;
+    }
+    return true;
+  }
+
   open() {
     this.earnedGold = 0;
     super.open();
@@ -31,6 +43,7 @@ class MineModal extends ActionModal {
     const player = this.game.player;
     const income = Mining.incomePerTick(player);
     const intervalSeconds = BALANCE.regen.intervalMs / 1000;
+    const goldChance = Math.round(BALANCE.mining.goldChancePerTick * 100);
 
     return `
       <p class="action-modal__text">
@@ -38,9 +51,15 @@ class MineModal extends ActionModal {
         доки це вікно відкрите.
       </p>
       <div class="mine-work__total"><span>Зароблено</span><b>🪙 ${this.earnedGold}</b></div>
-      <div class="mine-work__rate"><span>За один тік</span><b>+${income} золота</b></div>
+      <div class="mine-work__rate"><span>Золота за знахідку</span><b>+${income}</b></div>
+      <div class="mine-work__chance"><span>Шанс знайти золото</span><b>${goldChance}% за тік</b></div>
+      <div class="mine-work__cost">
+        <span>Втома за тік</span>
+        <b>−${BALANCE.mining.sleepCostPerTick} сну · ${player.needs.sleep}/${BALANCE.needs.max}</b>
+      </div>
       <p class="action-modal__hint">
-        1 базова монета + 1 монета за кожні ${BALANCE.mining.strengthPerBonusGold} діючої Сили.
+        ${BALANCE.mining.baseGoldPerTick} базове золото + 1 золото
+        за кожні ${BALANCE.mining.strengthPerBonusGold} діючої Сили.
         Поточна Сила: ${player.effectiveStrength}.
       </p>
     `;

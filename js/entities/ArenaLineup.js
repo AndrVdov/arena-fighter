@@ -111,8 +111,12 @@ class ArenaLineup {
     for (const enemy of new Set([...regularEnemies, ...revengeEnemies])) {
       if (enemy.hp >= enemy.maxHp) continue;
 
-      const amount = Math.max(1, Math.round(enemy.maxHp * percentPerTick));
+      const baseAmount = Math.max(1, Math.round(enemy.maxHp * percentPerTick));
+      const amount = enemy.recoveryAmount(baseAmount, 'hp');
+      if (amount <= 0) continue;
+
       enemy.hp = Math.min(enemy.maxHp, enemy.hp + amount);
+      if (enemy.hp >= enemy.maxHp) enemy.clearRecoveryProgress('hp');
       changed = true;
     }
     return changed;

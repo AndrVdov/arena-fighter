@@ -52,6 +52,7 @@ class EffectsBar {
     effects.push(...EffectsBar.collectBuffEffects(player));
 
     effects.push(...EffectsBar.collectNeedEffects(player));
+    effects.push(...EffectsBar.collectHealthEffects(player));
 
     return effects;
   }
@@ -86,6 +87,7 @@ class EffectsBar {
       ...EffectsBar.collectRaceEffects(enemy),
       ...EffectsBar.collectBuffEffects(enemy),
       ...EffectsBar.collectNeedEffects(enemy),
+      ...EffectsBar.collectHealthEffects(enemy),
     ];
   }
 
@@ -106,5 +108,19 @@ class EffectsBar {
       text: `${ASPECTS[buff.stat].format(buff.value)} · ${buff.fightsLeft} боїв`,
       hint: `Еліксир: ${ASPECTS[buff.stat].format(buff.value)} (ще боїв: ${buff.fightsLeft})`,
     }));
+  }
+
+  static collectHealthEffects(fighter) {
+    const condition = fighter.healthCondition;
+    if (!condition) return [];
+
+    const content = condition.id === 'nearDeath'
+      ? { icon: 'nearDeath', label: 'При смерті', damagePenalty: 75 }
+      : { icon: 'wounded', label: 'Поранений', damagePenalty: 50 };
+    const text = `${content.label}: −${content.damagePenalty}% урону, `
+      + `відновлення ÷${condition.recoveryDivisor}`
+      + (fighter instanceof Player ? `, подорожі ×${condition.travelMultiplier}` : '');
+
+    return [{ type: 'debuff', icon: content.icon, text, hint: text }];
   }
 }
