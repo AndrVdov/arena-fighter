@@ -42,12 +42,31 @@ class Needs {
     return normalized;
   }
 
+  static isFixed(fighter) {
+    return fighter?.race?.ignoresNeeds === true;
+  }
+
+  static normalizeFor(fighter, values = {}, fallback = BALANCE.needs.start) {
+    if (!Needs.isFixed(fighter)) return Needs.normalize(values, fallback);
+    return Object.freeze(Object.fromEntries(Object.keys(Needs.LABELS)
+      .map(need => [need, BALANCE.needs.fixedRaceValue])));
+  }
+
+  static set(fighter, need, value) {
+    if (!(need in Needs.LABELS)) return 0;
+    if (Needs.isFixed(fighter)) return 0;
+    const previous = fighter.needs[need];
+    fighter.needs[need] = Math.min(BALANCE.needs.max, Math.max(0, Number(value) || 0));
+    return fighter.needs[need] - previous;
+  }
+
   /**
    * Бонус шкалы к её характеристике: ±10% от значения характеристики
    * (минимум 1, чтобы эффект был заметен и на старте).
    * @param {number} statValue — характеристика с экипировкой и эликсирами
    */
   static bonusFor(player, need, statValue) {
+    if (Needs.isFixed(player)) return 0;
     const cfg = BALANCE.needs;
     const value = player.needs[need];
     const size = Math.max(1, Math.round(statValue * cfg.bonusPercent));
@@ -75,7 +94,7 @@ class Needs {
 
   static spend(player, cost) {
     for (const [need, amount] of Object.entries(cost)) {
-      player.needs[need] = Math.max(0, player.needs[need] - amount);
+      Needs.set(player, need, player.needs[need] - amount);
     }
     // Сон влияет на Жизнь → макс. HP мог упасть; не даём текущему HP его превышать
     player.clampHp();

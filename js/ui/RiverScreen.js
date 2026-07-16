@@ -43,12 +43,17 @@ class RiverScreen extends LocationScreen {
     if (action !== 'drink') return;
 
     const player = this.game.player;
+    if (Needs.isFixed(player)) {
+      this.game.toast('Нежить не відчуває спраги.');
+      return;
+    }
     if (player.needs.thirst >= BALANCE.needs.max) {
       this.game.toast('Ти вже не відчуваєш спраги.');
       return;
     }
 
-    player.needs.thirst = BALANCE.needs.max;
+    Needs.set(player, 'thirst', BALANCE.needs.max);
+    this.game.audio.play('drink');
     this.game.refresh();
     this.game.toast('Ти напився чистої річкової води.');
   }

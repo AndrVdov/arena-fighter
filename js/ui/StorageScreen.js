@@ -148,9 +148,14 @@ class StorageScreen extends Screen {
       if (!success) {
         player.inventory.remove(item);
         player.chest.add(item);
-        this.game.toast(`Потрібен рівень ${item.level}!`);
+        this.game.toast(action === 'consume'
+          && Needs.isFixed(player)
+          && player.isNeedConsumable(item)
+          ? 'Нежить не потребує їжі, води та сну.'
+          : `Потрібен рівень ${item.level}!`);
         return;
       }
+      if (action === 'consume') this.game.audio.playConsumable(item);
       this.game.toast(`${action === 'equip' ? 'Одягнено' : 'Вжито'}: ${item.name}`);
     }
 

@@ -25,13 +25,17 @@ class Hud {
     hunger: '<path d="M7 3v7M4.5 3v5A2.5 2.5 0 0 0 7 10.5V21M15 3v18M15 3c4 2.2 4 8 0 10"/>',
     thirst: '<path d="M12 2.8S6.5 9.3 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.3 12 2.8 12 2.8Z"/>',
     sleep: '<path d="M18.8 15.5A8 8 0 0 1 8.5 5.2 8 8 0 1 0 18.8 15.5Z"/>',
+    volume: '<path d="M4 10h4l5-4v12l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',
+    volumeOff: '<path d="M4 10h4l5-4v12l-5-4H4zM16 9l5 6M21 9l-5 6"/>',
     wounded: '<path d="M5 19 19 5M7 5l12 12M4 15l5 5M15 4l5 5"/>',
     nearDeath: '<path d="M5 10a7 7 0 1 1 14 0v5l-2 2H7l-2-2v-5Z"/><path d="M9 11h.01M15 11h.01M10 17v3M14 17v3"/>',
     stats: '<path d="M6 3.5h12v17H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
     inventory: '<path d="M6 8h12l1 13H5L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2M8 12h8"/>',
+    shield: '<path d="M12 2.5 20 5.5v6.2c0 5.2-3.2 8.4-8 10-4.8-1.6-8-4.8-8-10V5.5l8-3Z"/><path d="M12 5v13.5M7 8.2h10"/>',
     chest: '<path d="M3 9h18v11H3z"/><path d="M4 9V6h16v3M3 13h18M10 12h4v4h-4z"/>',
     equipment: '<path d="m5 4 15 15M19 4 4 19M3 3l5 1-4 4-1-5ZM21 3l-5 1 4 4 1-5ZM3.5 20.5l3-3M20.5 20.5l-3-3"/>',
     map: '<path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Z"/><path d="M9 3v16M15 5v16"/>',
+    room: '<path d="M4 21V5l8-2 8 2v16M4 21h16M12 3v18"/><path d="M8 8h.01M16 8h.01M8 13h.01M16 13h.01"/>',
     home: '<path d="m3 11 9-8 9 8"/><path d="M5.5 9.5V21h13V9.5M9.5 21v-7h5v7"/>',
     shop: '<path d="M4 10v11h16V10M3 10l2-6h14l2 6"/><path d="M3 10c0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0M9 21v-6h6v6"/>',
     refresh: '<path d="M20 7v5h-5"/><path d="M18.2 16.6A8 8 0 1 1 19.5 8L20 12"/>',
@@ -42,6 +46,7 @@ class Hud {
     potion: '<path d="M9 3h6M10 3v4l-4.5 8.2A4 4 0 0 0 9 21h6a4 4 0 0 0 3.5-5.8L14 7V3M7.2 14h9.6"/>',
     elixir: '<path d="M9 3h6M10 3v5l-4 7a4 4 0 0 0 3.5 6h5a4 4 0 0 0 3.5-6l-4-7V3M8 14h8"/>',
     race: '<circle cx="12" cy="8" r="4"/><path d="M5 21c.8-5 3.1-7.5 7-7.5S18.2 16 19 21M4 5l3 1M20 5l-3 1"/>',
+    rookie: '<path d="m5 19 12-12M14 4l6 6-4 1-3-3 1-4ZM4 20l3-1-2-2-1 3Z"/><path d="M5 5l14 14M4 4l4 1-3 3-1-4ZM16 16l4 4"/>',
     star: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
   };
 
@@ -121,9 +126,11 @@ class Hud {
     const label = Needs.LABELS[need];
     const cfg = BALANCE.needs;
     const percent = Math.round(cfg.bonusPercent * 100);
-    const hint = `${label.name}: ${value} / ${cfg.max}. ` +
-      `Від ${cfg.buffAbove}: +${percent}% до ${label.statName}, ` +
-      `до ${cfg.debuffBelow}: −${percent}%`;
+    const hint = Needs.isFixed(this.player)
+      ? `${label.name}: незмінно ${value}. Нежить не має цієї потреби.`
+      : `${label.name}: ${value} / ${cfg.max}. ` +
+        `Від ${cfg.buffAbove}: +${percent}% до ${label.statName}, ` +
+        `до ${cfg.debuffBelow}: −${percent}%`;
     const state = value <= cfg.debuffBelow ? 'low' : value >= cfg.buffAbove ? 'high' : 'normal';
 
     return `

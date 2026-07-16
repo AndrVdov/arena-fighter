@@ -7,7 +7,9 @@
  * Формулы (см. BALANCE.combat):
  *  - шанс крита растёт с разницей Ловкости атакующего и цели;
  *  - шанс уворота растёт с разницей Ловкости защищающегося и атакующего;
- *  - крит наносит удвоенный урон.
+ *  - постоянная броня уменьшает каждый полученный удар;
+ *  - щит с отдельным шансом дополнительно поглощает урон при блоке;
+ *  - крит наносит удвоенный урон до применения защиты.
  */
 class Combat {
 
@@ -63,18 +65,17 @@ class Combat {
   }
 
   /** Один удар: уворот, крит или обычное попадание. */
-  static strike(attacker, defender, minimumHp = 0) {
+  static strike(attacker, defender, minimumHp = 0, random = Math.random) {
     const cfg = BALANCE.combat;
     const attackName = Drops.randomOf(ATTACK_NAMES);
 
     // Уворот: ловкость защищающегося против ловкости атакующего
     const dodgeChance = Combat.chance(
-      cfg.dodgeBase + (defender.agility - attacker.agility) * cfg.dodgePerAgility
-        + defender.dodgeExtra / 100,
+      cfg.dodgeBase + (defender.agility - attacker.agility) * cfg.dodgePerAgility,
       cfg.dodgeMin, cfg.dodgeMax
     );
 
-    if (Math.random() < dodgeChance) {
+    if (random() < dodgeChance) {
       return {
         type: 'dodge',
         defenderSide: defender.side,
@@ -83,31 +84,74 @@ class Combat {
     }
 
     // Урон с разбросом
-    const spread = 1 + (Math.random() * 2 - 1) * cfg.variance;
+    const spread = 1 + (random() * 2 - 1) * cfg.variance;
     const damageMultiplier = Fighter.healthConditionFor(attacker.hp, attacker.maxHp)
       ?.damageMultiplier ?? 1;
-    let damage = Math.max(1, Math.round(attacker.baseAttackDamage * spread * damageMultiplier));
+    let rawDamage = Math.max(1, Math.round(
+      attacker.baseAttackDamage * spread * damageMultiplier
+    ));
 
     // Крит: ловкость атакующего против ловкости цели
     const critChance = Combat.chance(
       cfg.critBase + (attacker.agility - defender.agility) * cfg.critPerAgility,
       cfg.critMin, cfg.critMax
     );
-    const isCrit = Math.random() < critChance;
-    if (isCrit) damage *= cfg.critMultiplier;
+    const isCrit = random() < critChance;
+    if (isCrit) rawDamage *= cfg.critMultiplier;
+
+    const defense = Combat.applyDefense(rawDamage, defender, random);
+    let damage = defense.damage;
 
     const hpBeforeStrike = defender.hp;
     defender.hp = Math.max(minimumHp, defender.hp - damage);
     damage = hpBeforeStrike - defender.hp;
 
     return {
-      type: isCrit ? 'crit' : 'hit',
+      type: defense.blocked ? 'block' : isCrit ? 'crit' : 'hit',
       defenderSide: defender.side,
       defenderHp: defender.hp,
-      text: isCrit
-        ? `💥 КРИТ! ${attacker.name} — «${attackName}» ×2: ${damage} урону!`
-        : `${attacker.icon} ${attacker.name} завдає удару «${attackName}» — ${damage} урону.`,
+      damage,
+      rawDamage,
+      armorAbsorbed: defense.armorAbsorbed,
+      shieldAbsorbed: defense.shieldAbsorbed,
+      text: Combat.strikeText({
+        attacker, defender, attackName, damage, isCrit, ...defense,
+      }),
     };
+  }
+
+  static applyDefense(rawDamage, defender, random = Math.random) {
+    const armor = Math.max(0, defender.armor ?? 0);
+    const afterArmor = Math.max(1, rawDamage - armor);
+    const armorAbsorbed = rawDamage - afterArmor;
+    const blockChance = Combat.chance(defender.shieldBlockChance ?? 0, 0, 1);
+    const blocked = blockChance > 0 && random() < blockChance;
+    const blockArmor = blocked ? Math.max(0, defender.shieldBlockArmor ?? 0) : 0;
+    const damage = Math.max(1, afterArmor - blockArmor);
+
+    return {
+      damage,
+      blocked,
+      armorAbsorbed,
+      shieldAbsorbed: afterArmor - damage,
+    };
+  }
+
+  static strikeText({
+    attacker, defender, attackName, damage, isCrit, blocked,
+    armorAbsorbed, shieldAbsorbed,
+  }) {
+    const armorText = armorAbsorbed > 0 ? ` Броня поглинає ${armorAbsorbed}.` : '';
+    if (blocked) {
+      const armorPart = armorAbsorbed > 0 ? `броня поглинає ${armorAbsorbed}, ` : '';
+      return `🛡️ БЛОК! ${defender.name} відбиває удар «${attackName}» щитом: `
+        + `${armorPart}щит — ${shieldAbsorbed}; отримано ${damage} урону.`;
+    }
+    if (isCrit) {
+      return `💥 КРИТ! ${attacker.name} — «${attackName}» ×2: ${damage} урону!${armorText}`;
+    }
+    return `${attacker.icon} ${attacker.name} завдає удару «${attackName}» — `
+      + `${damage} урону.${armorText}`;
   }
 
   static chance(value, min, max) {
@@ -124,7 +168,9 @@ class Combat {
       maxHp: player.maxHp,
       baseAttackDamage: player.baseAttackDamage,
       agility: player.effectiveAgility,
-      dodgeExtra: player.dodgeExtra,
+      armor: player.armor,
+      shieldBlockChance: player.shieldBlockChance,
+      shieldBlockArmor: player.shieldBlockArmor,
     };
   }
 
@@ -137,7 +183,9 @@ class Combat {
       maxHp: enemy.maxHp,
       baseAttackDamage: enemy.baseAttackDamage,
       agility: enemy.effectiveAgility,
-      dodgeExtra: enemy.dodgeExtra,
+      armor: enemy.armor,
+      shieldBlockChance: enemy.shieldBlockChance,
+      shieldBlockArmor: enemy.shieldBlockArmor,
     };
   }
 }

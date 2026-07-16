@@ -22,6 +22,7 @@ class ActionModal extends Modal {
 
     super.open();
     this.game.activeAction = this.actionName;
+    this.game.audio.setAction(this.actionName);
     this.game.effectsBar.render(); // бафф действия сразу виден в панели эффектов
   }
 
@@ -30,6 +31,7 @@ class ActionModal extends Modal {
 
     if (this.game.activeAction === this.actionName) {
       this.game.activeAction = null;
+      this.game.audio.setAction(null);
       this.game.effectsBar.render();
       this.game.save();
     }

@@ -23,7 +23,7 @@ class MineModal extends ActionModal {
       this.game.toast('Поранений герой не може працювати в шахті. Спочатку відновіть здоров\'я.');
       return false;
     }
-    if (this.game.player.needs.sleep <= 0) {
+    if (!Needs.isFixed(this.game.player) && this.game.player.needs.sleep <= 0) {
       this.game.toast('Герой надто виснажений для роботи в шахті.');
       return false;
     }
@@ -55,7 +55,9 @@ class MineModal extends ActionModal {
       <div class="mine-work__chance"><span>Шанс знайти золото</span><b>${goldChance}% за тік</b></div>
       <div class="mine-work__cost">
         <span>Втома за тік</span>
-        <b>−${BALANCE.mining.sleepCostPerTick} сну · ${player.needs.sleep}/${BALANCE.needs.max}</b>
+        <b>${Needs.isFixed(player)
+          ? 'Нежить не втомлюється'
+          : `−${BALANCE.mining.sleepCostPerTick} сну · ${player.needs.sleep}/${BALANCE.needs.max}`}</b>
       </div>
       <p class="action-modal__hint">
         ${BALANCE.mining.baseGoldPerTick} базове золото + 1 золото

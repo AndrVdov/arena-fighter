@@ -1,17 +1,10 @@
 /**
  * ПРЕДМЕТЫ: РЕДКОСТЬ, АСПЕКТЫ, СЛОТЫ, ИМЕНА
  * ------------------------------------------
- * Правила по спеке (п. 5.2): редкость определяет, СКОЛЬКО аспектов
- * получает предмет и НАСКОЛЬКО большой бонус к каждому.
+ * Тип предмета задаёт основной боевой бонус, а редкость усиливает его
+ * и определяет количество дополнительных характеристик.
  */
 
-/**
- * Редкость. variants — возможные комбинации размеров бонусов,
- * одна из которых выбирается случайно при генерации предмета:
- *  - обычный: один малый бонус
- *  - редкий: один средний ИЛИ два малых
- *  - легендарный: один высокий ИЛИ два средних ИЛИ три малых
- */
 const RARITIES = {
   common: {
     id: 'common',
@@ -19,7 +12,6 @@ const RARITIES = {
     color: '#9aa0a6',
     powerMultiplier: 1,
     baseValue: 45,
-    variants: [['small']],
   },
   rare: {
     id: 'rare',
@@ -27,7 +19,6 @@ const RARITIES = {
     color: '#4a9de0',
     powerMultiplier: 1.35,
     baseValue: 175,
-    variants: [['medium'], ['small', 'small']],
   },
   legendary: {
     id: 'legendary',
@@ -35,22 +26,21 @@ const RARITIES = {
     color: '#e0a520',
     powerMultiplier: 1.8,
     baseValue: 520,
-    variants: [['large'], ['medium', 'medium'], ['small', 'small', 'small']],
   },
 };
 
-/**
- * Аспекты бонусов (по спеке): характеристика / прямой урон /
- * шанс уклонения / максимальный HP. Значения по размерам бонуса.
- */
+/** Аспекты, которые могут храниться в bonuses предмета. */
 const ASPECTS = {
-  strength: { name: 'Сила',       small: 2,  medium: 4,  large: 7,  levelGrowth: 0.10, format: v => `+${v} до Сили` },
-  agility:  { name: 'Спритність', small: 2,  medium: 4,  large: 7,  levelGrowth: 0.10, format: v => `+${v} до Спритності` },
-  vitality: { name: 'Життя',      small: 2,  medium: 4,  large: 7,  levelGrowth: 0.10, format: v => `+${v} до Життя` },
-  damage:   { name: 'Урон',       small: 3,  medium: 6,  large: 10, levelGrowth: 0.12, format: v => `+${v} до урону` },
-  dodge:    { name: 'Ухилення',   small: 3,  medium: 5,  large: 8,  levelGrowth: 0.04, format: v => `+${v}% до ухилення` },
-  maxHp:    { name: 'Макс. HP',   small: 10, medium: 20, large: 35, levelGrowth: 0.12, format: v => `+${v} до макс. HP` },
+  strength:   { name: 'Сила',        format: value => `+${value} до Сили` },
+  agility:    { name: 'Спритність',  format: value => `+${value} до Спритності` },
+  vitality:   { name: 'Життя',       format: value => `+${value} до Життя` },
+  damage:     { name: 'Урон',        format: value => `+${value} до урону` },
+  armor:      { name: 'Броня',       format: value => `+${value} броні` },
+  blockArmor: { name: 'Сила блока',  format: value => `−${value} урону при блоці` },
+  blockChance:{ name: 'Шанс блока',  format: value => `${value}% шанс блока` },
 };
+
+const EQUIPMENT_STAT_ASPECTS = ['strength', 'agility', 'vitality'];
 
 /** Слоты экипировки персонажа. */
 const EQUIPMENT_SLOTS = {

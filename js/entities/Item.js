@@ -2,15 +2,15 @@
  * ПРЕДМЕТ
  * -------
  * Уровень определяет масштаб характеристик, редкость — качество предмета
- * относительно других вещей того же уровня. Экземпляр хранит уже рассчитанные
- * бонусы/эффекты, поэтому баланс сохранений не меняется задним числом.
+ * относительно других вещей того же уровня. Экипировка хранит версию модели:
+ * старые вещи один раз пересчитываются при загрузке и дальше остаются стабильными.
  */
 class Item {
 
   constructor({
     id, templateId = null, name, icon = '✦', image = null, level = 1,
     slot = null, rarity = 'common', bonuses = {}, effect = null, price = null,
-    levelScaled = true,
+    levelScaled = true, equipmentVersion = null,
   }) {
     this.id = id ?? Item.generateId();
     this.templateId = templateId;
@@ -22,6 +22,9 @@ class Item {
     this.slot = slot;
     this.rarity = RARITIES[rarity] ? rarity : 'common';
     this.bonuses = bonuses;
+    this.equipmentVersion = slot
+      ? equipmentVersion ?? BALANCE.items.equipment.modelVersion
+      : null;
     this.effect = effect;
     this.price = price;
   }
@@ -44,6 +47,48 @@ class Item {
 
   static equipmentImage(slot, rarity) {
     return EQUIPMENT_SLOTS[slot]?.images?.[rarity] ?? null;
+  }
+
+  static equipmentBonuses(slot, rarityId, level, secondaryStats = []) {
+    const equipmentBalance = BALANCE.items.equipment;
+    const rule = equipmentBalance.primary[slot];
+    const rarityBalance = equipmentBalance.rarity[rarityId]
+      ?? equipmentBalance.rarity.common;
+    const itemLevel = Item.normalizeLevel(level);
+    if (!rule) return {};
+
+    const basePrimary = rule.base + (itemLevel - 1) * rule.perLevel;
+    const bonuses = {
+      [rule.aspect]: Math.max(1, Math.ceil(basePrimary * rarityBalance.primaryMultiplier)),
+    };
+
+    if (slot === 'shield') bonuses.blockChance = rarityBalance.blockChance;
+
+    const statValue = rarityBalance.secondaryStatBase
+      + Math.floor(itemLevel / equipmentBalance.secondaryStatLevelStep);
+    secondaryStats
+      .filter((stat, index, list) =>
+        EQUIPMENT_STAT_ASPECTS.includes(stat) && list.indexOf(stat) === index)
+      .slice(0, rarityBalance.secondaryStatCount)
+      .forEach(stat => { bonuses[stat] = statValue; });
+
+    return bonuses;
+  }
+
+  /** Выбрать стабильные характеристики при переносе старого предмета. */
+  static migrationStats(data, count) {
+    const selected = Object.keys(data.bonuses ?? {})
+      .filter(aspect => EQUIPMENT_STAT_ASPECTS.includes(aspect))
+      .slice(0, count);
+    const available = EQUIPMENT_STAT_ASPECTS.filter(stat => !selected.includes(stat));
+    const seed = [...`${data.id ?? ''}|${data.name ?? ''}`]
+      .reduce((total, character) => total + character.charCodeAt(0), 0);
+
+    while (selected.length < count && available.length) {
+      const index = seed % available.length;
+      selected.push(available.splice(index, 1)[0]);
+    }
+    return selected;
   }
 
   static priceForLevel(basePrice, level) {
@@ -117,8 +162,14 @@ class Item {
   /** Простая оценка суммарной силы экипировки для автоматического выбора. */
   get powerScore() {
     if (!this.isEquipment) return 0;
-    return Object.values(this.bonuses)
-      .reduce((total, value) => total + Math.max(0, Number(value) || 0), 0);
+    const statScore = EQUIPMENT_STAT_ASPECTS
+      .reduce((total, stat) => total + (this.bonuses[stat] ?? 0) * 2, 0);
+    if (this.slot === 'weapon') return (this.bonuses.damage ?? 0) + statScore;
+    if (this.slot === 'shield') {
+      return (this.bonuses.blockArmor ?? 0) * (this.bonuses.blockChance ?? 0) / 100
+        + statScore;
+    }
+    return (this.bonuses.armor ?? 0) + statScore;
   }
 
   canUseAtLevel(playerLevel) {
@@ -166,10 +217,11 @@ class Item {
       bonuses: this.bonuses,
       effect: this.effect,
       price: this.price,
+      equipmentVersion: this.equipmentVersion,
     };
   }
 
-  /** Старые предметы получают уровень героя, но сохраняют прежние числа. */
+  /** Старые предметы получают уровень героя и один раз переходят на текущую модель. */
   static fromJSON(data, fallbackLevel = 1) {
     if (!data) return null;
     const potionTemplate = Item.canonicalPotionTemplate(data);
@@ -186,7 +238,23 @@ class Item {
       return migrated;
     }
 
-    const rarity = data.rarity ?? template?.rarity ?? 'common';
+    const requestedRarity = data.rarity ?? template?.rarity ?? 'common';
+    const rarity = RARITIES[requestedRarity] ? requestedRarity : 'common';
+
+    const itemLevel = data.level ?? fallbackLevel;
+    const equipmentVersion = data.slot
+      ? data.equipmentVersion ?? null
+      : null;
+    const equipmentModelVersion = BALANCE.items.equipment.modelVersion;
+    const rarityBalance = BALANCE.items.equipment.rarity[rarity];
+    const bonuses = data.slot && equipmentVersion !== equipmentModelVersion
+      ? Item.equipmentBonuses(
+        data.slot,
+        rarity,
+        itemLevel,
+        Item.migrationStats(data, rarityBalance.secondaryStatCount)
+      )
+      : data.bonuses ?? {};
 
     return new Item({
       ...data,
@@ -194,7 +262,9 @@ class Item {
       image: data.image ?? template?.image ?? Item.equipmentImage(data.slot, rarity),
       levelScaled: data.levelScaled ?? template?.levelScaled ?? true,
       rarity,
-      level: data.level ?? fallbackLevel,
+      level: itemLevel,
+      bonuses,
+      equipmentVersion: data.slot ? equipmentModelVersion : null,
     });
   }
 

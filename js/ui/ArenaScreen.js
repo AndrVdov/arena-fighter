@@ -11,7 +11,8 @@ class ArenaScreen extends LocationScreen {
 
   constructor(game) {
     super(game);
-    this.activeRoster = 'common';
+    this.activeRoster = 'rookies';
+    this.activeRoomId = null;
     this.selectedIndex = null;  // выбранная карточка
     this.currentEnemy = null;   // противник текущего боя
     this.originalEnemy = null;  // сохранённая версия до транзакционного боя
@@ -24,6 +25,7 @@ class ArenaScreen extends LocationScreen {
   }
 
   static ROSTER_TABS = [
+    { id: 'rookies', name: 'Салаги', icon: 'rookie' },
     { id: 'common', name: 'Звичайні', icon: 'equipment' },
     { id: 'champions', name: 'Чемпіони', icon: 'star' },
     { id: 'kings', name: 'Королі', icon: 'coin' },
@@ -34,12 +36,14 @@ class ArenaScreen extends LocationScreen {
     this.container = container;
     clearInterval(this.playbackTimer);
     clearInterval(this.timerInterval);
+    this.activeRoomId = ArenaLineup.roomForLevel(this.game.player.level).id;
     this.renderSelect();
   }
 
   // ===== Фаза 1: выбор противника =====
 
   renderSelect() {
+    this.game.audio.setScene('arena');
     const player = this.game.player;
     const lineup = player.arenaLineup;
     this.selectedIndex = null;
@@ -47,14 +51,21 @@ class ArenaScreen extends LocationScreen {
     document.getElementById('hud-wrap').style.display = 'flex';
     this.game.effectsBar.render();
 
+    const roomsChanged = lineup.ensureRooms(player.level);
+    const availableRooms = ArenaLineup.availableRooms(player.level);
+    if (!availableRooms.some(room => room.id === this.activeRoomId)) {
+      this.activeRoomId = ArenaLineup.roomForLevel(player.level).id;
+    }
+    const activeRoom = availableRooms.find(room => room.id === this.activeRoomId);
+
     // Состав устарел (или герой на арене впервые) — завозим новых бойцов
     if (lineup.isExpired) {
       lineup.refresh(player.level);
       this.game.save();
-    }
+    } else if (roomsChanged) this.game.save();
     if (lineup.purgeExpiredRevenge() > 0) this.game.save();
 
-    const slots = lineup.getSlots(this.activeRoster);
+    const slots = lineup.getSlots(this.activeRoomId, this.activeRoster);
     const cards = slots
       .map((enemy, index) => enemy
         ? this.opponentCard(enemy, index)
@@ -70,12 +81,27 @@ class ArenaScreen extends LocationScreen {
           ${ArenaScreen.ROSTER_TABS.map(tab => `
             <button class="arena-roster-tab${tab.id === this.activeRoster ? ' arena-roster-tab--active' : ''}"
                     data-roster-tab="${tab.id}">
-              ${Hud.icon(tab.icon)}<span>${tab.name}</span><b>${lineup.count(tab.id)}</b>
+              ${Hud.icon(tab.icon)}<span>${tab.name}</span><b>${lineup.count(this.activeRoomId, tab.id)}</b>
             </button>
           `).join('')}
         </nav>
         <div class="arena-select__header">
-          <div class="arena-select__title">${isRevenge ? 'Список помсти' : 'Обери супротивника'}</div>
+          <div class="arena-select__heading">
+            <div class="arena-select__title">${isRevenge ? 'Список помсти' : 'Обери супротивника'}</div>
+            <div class="arena-room-switcher">
+              <button class="arena-room-button" data-room-toggle aria-expanded="false">
+                ${Hud.icon('room')}<span>Кімната</span><b>${activeRoom.label}</b>
+              </button>
+              <div class="arena-room-menu" data-room-menu hidden>
+                ${availableRooms.map(room => `
+                  <button class="arena-room-option${room.id === this.activeRoomId ? ' arena-room-option--active' : ''}"
+                          data-room-id="${room.id}">
+                    <span>Рівні ${room.label}</span>${room.id === this.activeRoomId ? '✓' : ''}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
           ${isRevenge ? `
             <div class="arena-refresh arena-refresh--revenge">Переможці зникають через годину після бою</div>
           ` : `
@@ -116,6 +142,20 @@ class ArenaScreen extends LocationScreen {
       });
     });
 
+    const roomToggle = this.container.querySelector('[data-room-toggle]');
+    const roomMenu = this.container.querySelector('[data-room-menu]');
+    roomToggle?.addEventListener('click', () => {
+      const willOpen = roomMenu.hidden;
+      roomMenu.hidden = !willOpen;
+      roomToggle.setAttribute('aria-expanded', String(willOpen));
+    });
+    this.container.querySelectorAll('[data-room-id]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.activeRoomId = button.dataset.roomId;
+        this.renderSelect();
+      });
+    });
+
     this.container.querySelectorAll('.opponent-card').forEach(card => {
       card.addEventListener('click', () => this.selectOpponent(Number(card.dataset.index)));
       card.addEventListener('keydown', event => {
@@ -130,7 +170,7 @@ class ArenaScreen extends LocationScreen {
     this.container.querySelectorAll('.opponent-card__info').forEach(button => {
       button.addEventListener('click', event => {
         event.stopPropagation();
-        const enemy = lineup.getEnemy(this.activeRoster, Number(button.dataset.infoIndex));
+        const enemy = lineup.getEnemy(this.activeRoomId, this.activeRoster, Number(button.dataset.infoIndex));
         if (enemy) this.showEnemyInfo(enemy);
       });
     });
@@ -144,7 +184,7 @@ class ArenaScreen extends LocationScreen {
 
   opponentCard(enemy, index) {
     const revengeExpiresAt = this.activeRoster === 'revenge'
-      ? this.game.player.arenaLineup.revengeExpiresAt(enemy)
+      ? this.game.player.arenaLineup.revengeExpiresAt(this.activeRoomId, enemy)
       : 0;
     const recovering = !enemy.canAcceptChallenge;
     return `
@@ -183,7 +223,7 @@ class ArenaScreen extends LocationScreen {
   }
 
   selectOpponent(index) {
-    const enemy = this.game.player.arenaLineup.getEnemy(this.activeRoster, index);
+    const enemy = this.game.player.arenaLineup.getEnemy(this.activeRoomId, this.activeRoster, index);
     if (!enemy?.canAcceptChallenge) {
       this.game.toast('Супротивник відхилив виклик: він ще не відновив здоров\'я до 100%.');
       return;
@@ -207,7 +247,7 @@ class ArenaScreen extends LocationScreen {
   /** Точечно обновить HP карточек, не сбрасывая выбор и таймер состава. */
   refreshOpponentHealth() {
     if (!this.container?.querySelector('.arena-select')) return;
-    const slots = this.game.player.arenaLineup.getSlots(this.activeRoster);
+    const slots = this.game.player.arenaLineup.getSlots(this.activeRoomId, this.activeRoster);
     this.container.querySelectorAll('[data-opponent-hp]').forEach(element => {
       const enemy = slots[Number(element.dataset.opponentHp)];
       if (!enemy) return;
@@ -291,7 +331,7 @@ class ArenaScreen extends LocationScreen {
         cfg.critMin, cfg.critMax
       ),
       yourDodge: percent(
-        cfg.dodgeBase + (playerAgility - enemyAgility) * cfg.dodgePerAgility + player.dodgeExtra / 100,
+        cfg.dodgeBase + (playerAgility - enemyAgility) * cfg.dodgePerAgility,
         cfg.dodgeMin, cfg.dodgeMax
       ),
       enemyCrit: percent(
@@ -299,7 +339,7 @@ class ArenaScreen extends LocationScreen {
         cfg.critMin, cfg.critMax
       ),
       enemyDodge: percent(
-        cfg.dodgeBase + (enemyAgility - playerAgility) * cfg.dodgePerAgility + enemy.dodgeExtra / 100,
+        cfg.dodgeBase + (enemyAgility - playerAgility) * cfg.dodgePerAgility,
         cfg.dodgeMin, cfg.dodgeMax
       ),
     };
@@ -404,6 +444,8 @@ class ArenaScreen extends LocationScreen {
         ${stat('❤️', 'Життя', enemy.vitality, enemy.effectiveVitality)}
         <span>🩸 HP: <b>${enemy.hp} / ${enemy.maxHp}</b></span>
         <span>⚔️ Урон: <b>~${enemy.attackDamage}</b></span>
+        <span>🛡️ Броня: <b>${enemy.armor}</b></span>
+        <span>🔰 Блок щитом: <b>${Math.round(enemy.shieldBlockChance * 100)}% · −${enemy.shieldBlockArmor}</b></span>
         <span>✨ Досвід за тренування: <b>${enemy.xpRewardFor('training')}</b></span>
         <span>☠️ Досвід за смертельний бій: <b>${enemy.xpRewardFor('lethal')}</b></span>
       </div>
@@ -454,7 +496,11 @@ class ArenaScreen extends LocationScreen {
   startBattle(requestedMode) {
     if (this.selectedIndex === null) return;
 
-    this.originalEnemy = this.game.player.arenaLineup.getEnemy(this.activeRoster, this.selectedIndex);
+    this.originalEnemy = this.game.player.arenaLineup.getEnemy(
+      this.activeRoomId,
+      this.activeRoster,
+      this.selectedIndex
+    );
     if (!this.originalEnemy) return;
     if (!this.originalEnemy.canAcceptChallenge) {
       this.game.toast('Супротивник відхилив виклик: він ще не відновив здоров\'я до 100%.');
@@ -488,6 +534,7 @@ class ArenaScreen extends LocationScreen {
     clearInterval(this.timerInterval); // во время боя состав не трогаем
     this.currentEnemy = Enemy.fromJSON(this.originalEnemy.toJSON());
     this.game.inCombat = true;
+    this.game.audio.setScene('battle');
     const usedItem = this.currentEnemy.usePreBattleElixir(this.game.player.level);
     const openingEvents = usedItem ? [{
       type: 'item',
@@ -533,12 +580,7 @@ class ArenaScreen extends LocationScreen {
     return `
       <div class="fighter${hp / maxHp <= 0.2 ? ' fighter--low-hp' : ''}" id="fighter-${side}">
         <div class="fighter__effects fighter__effects--${side}">
-          ${effects.length ? effects.map(effect => `
-            <div class="battle-effect battle-effect--${effect.type}"
-                 title="${effect.hint}" role="img" aria-label="${effect.hint}">
-              ${Hud.icon(effect.icon)}
-            </div>
-          `).join('') : ''}
+          ${this.effectsHtml(effects)}
         </div>
         <div class="fighter__hp">
           <div class="fighter__name">${name}</div>
@@ -556,9 +598,23 @@ class ArenaScreen extends LocationScreen {
             <span class="fighter__impact-ring"></span>
             <span class="fighter__impact-label">КРИТ!</span>
           </div>
+          <div class="fighter__block-impact" aria-hidden="true">
+            ${Hud.icon('shield')}
+            <span>БЛОК!</span>
+          </div>
+          <div class="fighter__damage-layer" aria-hidden="true"></div>
         </div>
       </div>
     `;
+  }
+
+  effectsHtml(effects) {
+    return effects.map(effect => `
+      <div class="battle-effect battle-effect--${effect.type}"
+           title="${effect.hint}" role="img" aria-label="${effect.hint}">
+        ${Hud.icon(effect.icon)}
+      </div>
+    `).join('');
   }
 
   /** Проиграть события боя с паузами, затем применить результат. */
@@ -575,6 +631,7 @@ class ArenaScreen extends LocationScreen {
       }
 
       const event = result.events[index++];
+      this.game.audio.playCombatEvent(event);
       this.appendLogLine(log, event);
       if (event.defenderSide) this.updateFighterHp(event);
 
@@ -608,15 +665,45 @@ class ArenaScreen extends LocationScreen {
     fighter.querySelector('.bar__fill').style.width = `${(event.defenderHp / maxHp) * 100}%`;
     fighter.querySelector('.bar__label').textContent = `${event.defenderHp} / ${maxHp}`;
     fighter.classList.toggle('fighter--low-hp', event.defenderHp / maxHp <= 0.2);
+    this.showDamageNumber(event.defenderSide, event.damage, event.type);
+    this.updateFighterEffects(event.defenderSide, event.defenderHp);
     this.flashFighter(
       event.defenderSide,
-      event.type === 'crit' ? 'fighter--crit' : 'fighter--hit'
+      event.type === 'block'
+        ? 'fighter--block'
+        : event.type === 'crit' ? 'fighter--crit' : 'fighter--hit'
     );
+  }
+
+  updateFighterEffects(side, currentHp) {
+    const fighter = side === 'player' ? this.game.player : this.currentEnemy;
+    const effects = side === 'player'
+      ? EffectsBar.collectPlayerEffects(fighter, this.game, currentHp)
+      : EffectsBar.collectEnemyEffects(fighter, currentHp);
+    const effectsElement = this.container.querySelector(`.fighter__effects--${side}`);
+    if (effectsElement) effectsElement.innerHTML = this.effectsHtml(effects);
+  }
+
+  showDamageNumber(side, damage, type = 'hit') {
+    if (!Number.isFinite(damage) || damage <= 0) return;
+    const layer = this.container.querySelector(`#fighter-${side} .fighter__damage-layer`);
+    if (!layer) return;
+
+    const number = document.createElement('span');
+    const kind = ['crit', 'block'].includes(type) ? type : 'hit';
+    number.className = `fighter__damage-number fighter__damage-number--${kind}`;
+    number.style.setProperty('--damage-x', `${Math.round((Math.random() - 0.5) * 54)}px`);
+    number.textContent = `−${damage}`;
+    layer.appendChild(number);
+    number.addEventListener('animationend', () => number.remove(), { once: true });
+    setTimeout(() => number.remove(), 1200);
   }
 
   flashFighter(side, cssClass) {
     const fighter = this.container.querySelector(`#fighter-${side}`);
-    fighter.classList.remove('fighter--hit', 'fighter--dodge', 'fighter--crit');
+    fighter.classList.remove(
+      'fighter--hit', 'fighter--dodge', 'fighter--crit', 'fighter--block'
+    );
     void fighter.offsetWidth; // перезапуск CSS-анимации
     fighter.classList.add(cssClass);
   }
@@ -631,6 +718,8 @@ class ArenaScreen extends LocationScreen {
       mode: result.mode, xp: 0, gold: 0, items: [], equipment: [], levelsGained: 0,
       lostGold: 0, lostXp: 0, lostItems: [], lostEquipment: [],
     };
+
+    if (!silent) this.game.audio.play(result.playerWon ? 'victory' : 'defeat');
 
     if (result.playerWon) {
       rewards.xp = enemy.xpRewardFor(result.mode);

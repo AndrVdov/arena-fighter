@@ -15,7 +15,7 @@ const BALANCE = {
     },
     baseHp: 50,            // базовый запас HP без учёта Жизни
     hpPerVitality: 10,     // сколько HP даёт каждая единица Жизни
-    startGold: 100,        // золото нового персонажа
+    startGold: 20,         // золото нового персонажа
     statPointsPerLevel: 3, // очков характеристик за каждый уровень
     startFreePoints: 3,    // свободные очки при создании персонажа
   },
@@ -35,6 +35,7 @@ const BALANCE = {
   needs: {
     max: 100,
     start: 100,
+    fixedRaceValue: 50,
     buffAbove: 70,      // шкала ≥ 70 → бонус к своей характеристике
     debuffBelow: 20,    // шкала ≤ 20 → штраф
     bonusPercent: 0.10, // размер бонуса/штрафа: 10% от характеристики (минимум 1)
@@ -58,6 +59,12 @@ const BALANCE = {
   regen: {
     intervalMs: 3000,
     percentPerTick: 0.01, // 1% макс. HP за тик (минимум 1 HP)
+  },
+
+  audio: {
+    defaultVolumes: { enabled: true, master: 0.75, ambience: 0.42, effects: 0.68 },
+    sceneFadeSeconds: 1.1,
+    miningPickIntervalMs: [700, 1350],
   },
 
   // Дебафы от низкого здоровья. Проверяются от более тяжёлого к лёгкому.
@@ -116,13 +123,12 @@ const BALANCE = {
   enemy: {
     xpBase: 12,             // опыт зависит только от уровня, без множителя звания
     xpPerLevel: 8,
+    equipmentLevelOffsets: [0, -1, -2],
     elixirChance: {
       lowerLevel: 0.75,
       equalLevel: 0.50,
       higherLevel: 0.25,
     },
-    // Смещение уровней противников на арене относительно игрока
-    levelOffsets: [-1, 0, 1, 2],
   },
 
   // Арена: состав противников обновляется сам по таймеру.
@@ -130,6 +136,7 @@ const BALANCE = {
   arena: {
     refreshSeconds: 180,
     slotsPerRoster: 4,
+    levelSegmentSize: 3,
     championSlotChance: 0.5,
     kingSlotChance: 0.25,
     revengeLifetimeSeconds: 3600,
@@ -143,12 +150,47 @@ const BALANCE = {
     pricePerLevel: 0.15,      // цена: +15% за уровень
     equipmentSellRatio: 0.35,
     consumableSellRatio: 0.50,
+    equipment: {
+      modelVersion: 2,
+      rarity: {
+        common: {
+          primaryMultiplier: 1,
+          secondaryStatCount: 0,
+          secondaryStatBase: 0,
+          blockChance: 10,
+        },
+        rare: {
+          primaryMultiplier: 1.5,
+          secondaryStatCount: 1,
+          secondaryStatBase: 1,
+          blockChance: 15,
+        },
+        legendary: {
+          primaryMultiplier: 2.2,
+          secondaryStatCount: 2,
+          secondaryStatBase: 2,
+          blockChance: 20,
+        },
+      },
+      primary: {
+        weapon: { aspect: 'damage', base: 4, perLevel: 1.1 },
+        armor:  { aspect: 'armor', base: 3, perLevel: 0.8 },
+        helmet: { aspect: 'armor', base: 2, perLevel: 0.55 },
+        boots:  { aspect: 'armor', base: 1, perLevel: 0.45 },
+        shield: { aspect: 'blockArmor', base: 6, perLevel: 1.4 },
+      },
+      secondaryStatLevelStep: 5,
+    },
   },
 
   // Ротация ассортимента снаряжения в магазине
   shop: {
     stockSize: 5,                // сколько предметов в ассортименте
-    consumableStockSize: 3,      // сколько расходников показывается в каждой категории
+    consumables: {
+      modelVersion: 2,
+      countWeights: { 2: 15, 3: 25, 4: 30, 5: 20, 6: 10 },
+      rarityWeights: { common: 84, rare: 15, legendary: 1 },
+    },
     refreshMinutes: 10,          // через сколько минут товар обновляется сам
     rerollCost: 50,              // фиксированная цена обновления всего магазина
     // Как часто какая редкость появляется на прилавке

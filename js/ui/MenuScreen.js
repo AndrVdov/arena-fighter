@@ -281,7 +281,9 @@ class MenuScreen extends Screen {
     return `
       <button type="button" class="create-race${selected ? ' create-race--selected' : ''}"
               data-race-id="${raceId}" aria-pressed="${selected}">
-        <span class="create-race__icon">${race.icon}</span>
+        <span class="create-race__portrait">
+          <img src="${race.playerPortrait}" alt="${race.name}">
+        </span>
         <b>${race.name}</b>
         <small>${Fighter.raceTraitText(race)}</small>
       </button>

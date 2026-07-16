@@ -24,7 +24,8 @@ class StatsModal extends Modal {
 
       <div class="derived-stats">
         <span>⚔️ Урон: ${p.attackDamage}</span>
-        <span>💨 Ухилення: +${p.dodgeExtra}%</span>
+        <span>🛡️ Броня: ${p.armor}</span>
+        <span>🔰 Блок щитом: ${Math.round(p.shieldBlockChance * 100)}% · −${p.shieldBlockArmor} урону</span>
         <span>🩸 Макс. HP: ${p.maxHp}</span>
       </div>
 

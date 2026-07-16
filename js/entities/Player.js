@@ -39,20 +39,20 @@ class Player extends Fighter {
     }
 
     // Временные баффы от эликсиров: { stat, value, fightsLeft }
-    this.buffs = data.buffs ?? [];
+    this.buffs = Fighter.normalizeBuffs(data.buffs);
 
     // Ассортимент магазина (ротация привязана к герою и его сейву)
     this.shopStock = new ShopStock(data.shopStock ?? {}, this.level);
 
     // Состав противников арены (тоже живёт в сейве)
-    this.arenaLineup = new ArenaLineup(data.arenaLineup ?? {});
+    this.arenaLineup = new ArenaLineup(data.arenaLineup ?? {}, this.level);
 
     // Потребности: голод / жажда / сон.
     // ВАЖНО: инициализируются до hp — maxHp зависит от сна (через Жизнь).
-    this.needs = Needs.normalize(data.needs);
+    this.needs = Needs.normalizeFor(this, data.needs);
 
-    // Здоровье (максимум зависит от Жизни, экипировки и сна)
-    this.hp = data.hp ?? this.maxHp;
+    // Здоровье (максимум зависит от Жизни и сна)
+    this.hp = Math.min(data.hp ?? this.maxHp, this.maxHp);
 
     // Текущая локация (по спеке игра всегда начинается дома)
     this.location = data.location ?? 'home';
@@ -154,18 +154,23 @@ class Player extends Fighter {
   /** Употребить предмет: лечение, еда, вода, сон или эликсир-бафф. */
   consume(item) {
     if (!item.isConsumable || !item.canUseAtLevel(this.level)) return false;
+    if (Needs.isFixed(this) && this.isNeedConsumable(item)) return false;
 
     const e = item.effect;
-    const needsMax = BALANCE.needs.max;
 
     if (e.hp)     this.hp = Math.min(this.maxHp, this.hp + e.hp);
-    if (e.hunger) this.needs.hunger = Math.min(needsMax, this.needs.hunger + e.hunger);
-    if (e.thirst) this.needs.thirst = Math.min(needsMax, this.needs.thirst + e.thirst);
-    if (e.sleep)  this.needs.sleep  = Math.min(needsMax, this.needs.sleep + e.sleep);
+    if (e.hunger) Needs.set(this, 'hunger', this.needs.hunger + e.hunger);
+    if (e.thirst) Needs.set(this, 'thirst', this.needs.thirst + e.thirst);
+    if (e.sleep)  Needs.set(this, 'sleep', this.needs.sleep + e.sleep);
     if (e.buff)   this.addBuff(e.buff.stat, e.buff.value, e.buff.fights);
 
     this.inventory.remove(item);
     return true;
+  }
+
+  isNeedConsumable(item) {
+    const effect = item?.effect;
+    return Boolean(effect?.hunger || effect?.thirst || effect?.sleep);
   }
 
   // ===== Сохранение =====

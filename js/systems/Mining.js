@@ -2,7 +2,8 @@
 class Mining {
 
   static canWork(player) {
-    return player.healthCondition === null && player.needs.sleep > 0;
+    return player.healthCondition === null
+      && (Needs.isFixed(player) || player.needs.sleep > 0);
   }
 
   static incomePerTick(player) {
@@ -16,10 +17,12 @@ class Mining {
       return { earnedGold: 0, sleepSpent: 0, foundGold: false, worked: false };
     }
 
-    const sleepSpent = Math.min(player.needs.sleep, BALANCE.mining.sleepCostPerTick);
+    const sleepSpent = Needs.isFixed(player)
+      ? 0
+      : Math.min(player.needs.sleep, BALANCE.mining.sleepCostPerTick);
 
     const potentialIncome = Mining.incomePerTick(player);
-    player.needs.sleep -= sleepSpent;
+    Needs.set(player, 'sleep', player.needs.sleep - sleepSpent);
     const foundGold = random() < BALANCE.mining.goldChancePerTick;
     const earnedGold = foundGold ? potentialIncome : 0;
     player.gold += earnedGold;

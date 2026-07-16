@@ -28,7 +28,7 @@ class EffectsBar {
   }
 
   /** Эффекты героя для HUD и увеличенного боевого представления. */
-  static collectPlayerEffects(player, game = null) {
+  static collectPlayerEffects(player, game = null, currentHp = player.hp) {
     const effects = EffectsBar.collectRaceEffects(player);
 
     // Длительное действие: отдых или сон ускоряют реген HP
@@ -52,7 +52,7 @@ class EffectsBar {
     effects.push(...EffectsBar.collectBuffEffects(player));
 
     effects.push(...EffectsBar.collectNeedEffects(player));
-    effects.push(...EffectsBar.collectHealthEffects(player));
+    effects.push(...EffectsBar.collectHealthEffects(player, currentHp));
 
     return effects;
   }
@@ -82,12 +82,12 @@ class EffectsBar {
     return effects;
   }
 
-  static collectEnemyEffects(enemy) {
+  static collectEnemyEffects(enemy, currentHp = enemy.hp) {
     return [
       ...EffectsBar.collectRaceEffects(enemy),
       ...EffectsBar.collectBuffEffects(enemy),
       ...EffectsBar.collectNeedEffects(enemy),
-      ...EffectsBar.collectHealthEffects(enemy),
+      ...EffectsBar.collectHealthEffects(enemy, currentHp),
     ];
   }
 
@@ -110,8 +110,8 @@ class EffectsBar {
     }));
   }
 
-  static collectHealthEffects(fighter) {
-    const condition = fighter.healthCondition;
+  static collectHealthEffects(fighter, currentHp = fighter.hp) {
+    const condition = Fighter.healthConditionFor(currentHp, fighter.maxHp);
     if (!condition) return [];
 
     const content = condition.id === 'nearDeath'

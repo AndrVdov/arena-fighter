@@ -185,6 +185,7 @@ class ShopScreen extends LocationScreen {
     player.gold -= item.price;
     stock.remove(item);
     player.inventory.add(item);
+    this.game.audio.play('coin');
 
     this.merchantMessage = `Вдалий вибір. ${item.name} тепер твоє.`;
     this.game.toast(`Куплено: ${item.name}`);
@@ -201,6 +202,7 @@ class ShopScreen extends LocationScreen {
 
     player.gold -= cost;
     player.shopStock.refresh(player.level);
+    this.game.audio.play('coin');
 
     this.merchantMessage = 'Ось інша добірка. Може, тепер щось припаде до душі.';
     this.game.toast('Крамар виклав новий товар!');
@@ -297,6 +299,7 @@ class ShopScreen extends LocationScreen {
     player.gold -= item.price;
     stock.removeConsumable(this.activeTab, item);
     player.inventory.add(item);
+    this.game.audio.play('coin');
 
     this.merchantMessage = `Тримай. ${item.name} ще не раз стане тобі в пригоді.`;
     this.game.toast(`Куплено: ${item.name}`);
@@ -350,6 +353,7 @@ class ShopScreen extends LocationScreen {
 
     storage.remove(item);
     this.game.player.gold += item.sellPrice;
+    this.game.audio.play('coin');
 
     this.merchantMessage = `Домовились. ${item.sellPrice} монет — чесна ціна.`;
     this.game.toast(`Продано: ${item.name} (+${item.sellPrice} 🪙)`);

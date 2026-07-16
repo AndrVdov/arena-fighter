@@ -27,8 +27,8 @@ class Enemy extends Fighter {
       ? Inventory.fromJSON(inventory, this.level)
       : Enemy.rollInventory(this.elite, this.level);
     this.gold = gold ?? Enemy.rollGold(this.elite, this.level);
-    this.buffs = (buffs ?? []).map(buff => ({ ...buff }));
-    this.needs = Needs.normalize(needs ?? Enemy.rollNeeds());
+    this.buffs = Fighter.normalizeBuffs(buffs);
+    this.needs = Needs.normalizeFor(this, needs ?? Enemy.rollNeeds());
 
     if (!equipment) this.equipment = Enemy.rollEquipment(this.elite, this.level);
     if (isGenerated) this.normalizeFoodAndWater();
@@ -59,22 +59,33 @@ class Enemy extends Fighter {
 
   static rollEquipment(rank, level) {
     const result = Object.fromEntries(Object.keys(EQUIPMENT_SLOTS).map(slot => [slot, null]));
+    const equipmentRule = rank.equipment;
     const slots = [...Object.keys(EQUIPMENT_SLOTS)];
-    const count = Math.min(slots.length, Number(Enemy.weightedKey(rank.equipmentCountWeights)));
+    const count = equipmentRule.mode === 'full'
+      ? slots.length
+      : Math.min(slots.length, Number(Enemy.weightedKey(equipmentRule.countWeights)));
 
     for (let i = 0; i < count; i++) {
       const slotIndex = Math.floor(Math.random() * slots.length);
       const slot = slots.splice(slotIndex, 1)[0];
-      const rarity = Enemy.weightedKey(rank.equipmentRarityWeights);
-      result[slot] = Drops.generateEquipmentForSlot(slot, rarity, level);
+      const itemLevel = equipmentRule.mode === 'full'
+        ? Enemy.rollEquipmentLevel(level)
+        : level;
+      result[slot] = Drops.generateEquipmentForSlot(slot, equipmentRule.rarity, itemLevel);
     }
     return result;
+  }
+
+  static rollEquipmentLevel(enemyLevel, random = Math.random) {
+    const offsets = BALANCE.enemy.equipmentLevelOffsets;
+    const offset = offsets[Math.floor(random() * offsets.length)];
+    return Math.max(1, Item.normalizeLevel(enemyLevel) + offset);
   }
 
   static rollInventory(rank, level) {
     const inventory = new Inventory();
     const count = Number(Enemy.weightedKey(rank.inventoryCountWeights));
-    const allowedRarities = new Set(Object.keys(rank.equipmentRarityWeights));
+    const allowedRarities = new Set(rank.inventoryRarities);
     const templates = Object.values(SHOP_CONSUMABLES).flat()
       .filter(template => allowedRarities.has(template.rarity));
 
@@ -135,14 +146,12 @@ class Enemy extends Fighter {
 
   /** При генерации сразу употребить всю имеющуюся еду и воду по необходимости. */
   normalizeFoodAndWater() {
+    if (Needs.isFixed(this)) return;
     for (const need of ['hunger', 'thirst']) {
       const candidates = this.inventory.items.filter(item => item.effect?.[need]);
       while (this.needs[need] < BALANCE.needs.max && candidates.length) {
         const item = candidates.shift();
-        this.needs[need] = Math.min(
-          BALANCE.needs.max,
-          this.needs[need] + item.effect[need]
-        );
+        Needs.set(this, need, this.needs[need] + item.effect[need]);
         this.inventory.remove(item);
       }
     }

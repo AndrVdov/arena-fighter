@@ -27,14 +27,14 @@ class Drops {
       level: itemLevel,
       slot,
       rarity: rarityId,
-      bonuses: Drops.rollBonuses(rarityId, itemLevel),
+      bonuses: Drops.rollEquipmentBonuses(slot, rarityId, itemLevel),
     });
   }
 
   /** Редкость по переданным весам. */
-  static rollRarity(weights) {
+  static rollRarity(weights, random = Math.random) {
     const total = Object.values(weights).reduce((a, b) => a + b, 0);
-    let roll = Math.random() * total;
+    let roll = random() * total;
 
     for (const [rarityId, weight] of Object.entries(weights)) {
       roll -= weight;
@@ -43,25 +43,17 @@ class Drops {
     return 'common';
   }
 
-  /**
-   * Бонусы предмета: редкость определяет вариант — сколько аспектов
-   * и какого размера бонус к каждому (без повторов аспектов).
-   */
-  static rollBonuses(rarityId, level = 1) {
-    const sizes = Drops.randomOf(RARITIES[rarityId].variants);
-    const availableAspects = Object.keys(ASPECTS);
-    const bonuses = {};
+  static rollEquipmentBonuses(slot, rarityId, level = 1) {
+    const rarity = RARITIES[rarityId] ?? RARITIES.common;
+    const rarityBalance = BALANCE.items.equipment.rarity[rarity.id];
+    const stats = [...EQUIPMENT_STAT_ASPECTS];
+    const selectedStats = [];
 
-    for (const size of sizes) {
-      const index = Math.floor(Math.random() * availableAspects.length);
-      const aspect = availableAspects.splice(index, 1)[0];
-      bonuses[aspect] = Item.scaleValue(
-        ASPECTS[aspect][size],
-        level,
-        ASPECTS[aspect].levelGrowth
-      );
+    while (selectedStats.length < rarityBalance.secondaryStatCount) {
+      const index = Math.floor(Math.random() * stats.length);
+      selectedStats.push(stats.splice(index, 1)[0]);
     }
-    return bonuses;
+    return Item.equipmentBonuses(slot, rarity.id, level, selectedStats);
   }
 
   static randomOf(list) {

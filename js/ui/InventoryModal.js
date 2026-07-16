@@ -55,9 +55,12 @@ class InventoryModal extends Modal {
 
       case 'consume':
         if (!player.consume(item)) {
-          this.game.toast(`Потрібен рівень ${item.level}!`);
+          this.game.toast(Needs.isFixed(player) && player.isNeedConsumable(item)
+            ? 'Нежить не потребує їжі, води та сну.'
+            : `Потрібен рівень ${item.level}!`);
           return;
         }
+        this.game.audio.playConsumable(item);
         this.game.toast(`Вжито: ${item.name}`);
         break;
 

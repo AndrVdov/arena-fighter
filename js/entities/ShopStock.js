@@ -12,6 +12,9 @@ class ShopStock {
   constructor(data = {}, playerLevel = 1) {
     this.playerLevel = Item.normalizeLevel(playerLevel);
     this.items = (data.items ?? []).map(item => Item.fromJSON(item, this.playerLevel));
+    const consumableModel = BALANCE.shop.consumables.modelVersion;
+    const consumablesOutdated = Boolean(data.consumables)
+      && data.consumableModelVersion !== consumableModel;
     this.consumables = {};
     for (const category of ShopStock.consumableCategories()) {
       const saved = data.consumables?.[category];
@@ -19,7 +22,7 @@ class ShopStock {
         ? saved.map(item => Item.fromJSON(item, this.playerLevel))
         : ShopStock.rollConsumableCategory(category, this.playerLevel);
     }
-    this.refreshAt = data.refreshAt ?? 0; // когда товар устареет (timestamp)
+    this.refreshAt = consumablesOutdated ? 0 : data.refreshAt ?? 0;
   }
 
   /** Пора ли генерировать новый ассортимент. */
@@ -57,23 +60,45 @@ class ShopStock {
     return Object.keys(SHOP_CONSUMABLES);
   }
 
-  /** Выбрать случайные уникальные расходники из пула категории. */
-  static rollConsumableCategory(category, playerLevel = 1) {
+  /** Независимо выбрать количество, редкость и шаблон каждого расходника. */
+  static rollConsumableCategory(category, playerLevel = 1, random = Math.random) {
     const pool = SHOP_CONSUMABLES[category] ?? [];
-    const count = Math.min(BALANCE.shop.consumableStockSize, pool.length);
-    const shuffled = [...pool];
+    if (!pool.length) return [];
 
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-
-    return shuffled.slice(0, count)
-      .map(template => Item.fromTemplate(template, ShopStock.rollLevel(playerLevel)));
+    const count = ShopStock.rollConsumableCount(random);
+    return Array.from({ length: count }, () => {
+      const rarity = ShopStock.rollConsumableRarity(random);
+      const matchingTemplates = pool.filter(template => template.rarity === rarity);
+      const candidates = matchingTemplates.length ? matchingTemplates : pool;
+      const template = candidates[Math.floor(random() * candidates.length)];
+      return Item.fromTemplate(template, ShopStock.rollLevel(playerLevel, random));
+    });
   }
 
-  static rollLevel(playerLevel) {
-    const offset = Drops.randomOf(BALANCE.shop.levelOffsets);
+  static rollConsumableCount(random = Math.random) {
+    return Number(ShopStock.rollWeightedKey(
+      BALANCE.shop.consumables.countWeights,
+      random
+    ));
+  }
+
+  static rollConsumableRarity(random = Math.random) {
+    return Drops.rollRarity(BALANCE.shop.consumables.rarityWeights, random);
+  }
+
+  static rollWeightedKey(weights, random = Math.random) {
+    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    let roll = random() * total;
+    for (const [key, weight] of Object.entries(weights)) {
+      roll -= weight;
+      if (roll <= 0) return key;
+    }
+    return Object.keys(weights)[0];
+  }
+
+  static rollLevel(playerLevel, random = Math.random) {
+    const offsets = BALANCE.shop.levelOffsets;
+    const offset = offsets[Math.floor(random() * offsets.length)];
     return Math.max(1, Item.normalizeLevel(playerLevel) + offset);
   }
 
@@ -117,6 +142,7 @@ class ShopStock {
         Object.entries(this.consumables)
           .map(([category, items]) => [category, items.map(item => item.toJSON())])
       ),
+      consumableModelVersion: BALANCE.shop.consumables.modelVersion,
       refreshAt: this.refreshAt,
     };
   }

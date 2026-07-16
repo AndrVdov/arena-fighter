@@ -54,6 +54,8 @@ const RACES = {
     playerPortrait: 'assets/player/undead.webp',
     name: 'Нежить',
     lore: 'Скелети й зомбі: живучі, але неповороткі. Мертве не поспішає.',
+    ignoresNeeds: true,
+    traitText: 'Не потребує їжі, води та сну',
     statModifiers: { agility: -0.20, vitality: 0.30 },
     statWeights: { strength: 0.30, agility: 0.15, vitality: 0.55 },
     spawnWeight: 20,

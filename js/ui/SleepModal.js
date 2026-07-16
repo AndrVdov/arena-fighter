@@ -36,6 +36,10 @@ class SleepModal extends ActionModal {
   canStart() {
     const player = this.game.player;
 
+    if (Needs.isFixed(player)) {
+      this.game.toast('Нежить не потребує сну.');
+      return false;
+    }
     if (player.needs.sleep >= BALANCE.needs.max) {
       this.game.toast('Герой зовсім не хоче спати!');
       return false;
@@ -113,6 +117,7 @@ class SleepModal extends ActionModal {
     if (this.game.activeAction !== this.actionName) return;
 
     this.game.activeAction = null;
+    this.game.audio.setAction(null);
     this.completed = true;
     this.game.effectsBar.render();
     this.game.save();

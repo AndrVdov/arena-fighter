@@ -9,6 +9,7 @@ class Game {
 
   constructor() {
     this.saveManager = new SaveManager();
+    this.audio = new AudioManager();
     this.player = null;
     this.currentSlot = null;
     this.hud = null;
@@ -49,10 +50,12 @@ class Game {
       sleep:     new SleepModal(this),
       mine:      new MineModal(this),
       map:       new WorldMapModal(this),
+      audio:     new AudioSettingsModal(this),
     };
     this.travel = new TravelOverlay(this);
 
     this.renderNav();
+    this.audio.onSettingsChanged = () => this.renderAudioButton();
     this.startRegen();
 
     window.addEventListener('beforeunload', () => this.save());
@@ -160,6 +163,7 @@ class Game {
     this.modals.map.close();
     if (originId === locationId) return;
 
+    this.audio.play('travel');
     this.travel.start(LOCATIONS[originId], LOCATIONS[locationId], travelResult => {
       Needs.spend(this.player, BALANCE.travel.needsCost);
       this.player.worldTimeMinutes += travelResult.gameMinutes;
@@ -197,6 +201,9 @@ class Game {
 
     this.screenContainer.className = screen.cssClass;
     screen.render(this.screenContainer);
+
+    // Карта является модальным окном и сюда не попадает, поэтому не меняет сцену.
+    this.audio.setScene(this.player?.location ?? screen.id);
 
     document.getElementById('hud-wrap').style.display = screen.showsHud ? 'flex' : 'none';
     this.setGameNavigationVisible(screen.showsGameNavigation);
@@ -251,10 +258,12 @@ class Game {
       }
 
       // Сон наполняет свою шкалу
-      if (this.activeAction === 'sleep' && player.needs.sleep < BALANCE.needs.max) {
+      if (this.activeAction === 'sleep'
+        && !Needs.isFixed(player)
+        && player.needs.sleep < BALANCE.needs.max) {
         const amount = player.recoveryAmount(BALANCE.rest.sleepPerTick, 'sleep');
         if (amount > 0) {
-          player.needs.sleep = Math.min(BALANCE.needs.max, player.needs.sleep + amount);
+          Needs.set(player, 'sleep', player.needs.sleep + amount);
           if (player.needs.sleep >= BALANCE.needs.max) player.clearRecoveryProgress('sleep');
           changed = true;
         }
@@ -303,7 +312,9 @@ class Game {
       this.toast('Герой відпочив — повний сил!');
     } else if (this.activeAction === 'sleep' && player.needs.sleep >= BALANCE.needs.max) {
       this.modals.sleep.complete();
-    } else if (this.activeAction === 'mine' && player.needs.sleep <= 0) {
+    } else if (this.activeAction === 'mine'
+      && !Needs.isFixed(player)
+      && player.needs.sleep <= 0) {
       this.modals.mine.close();
       this.toast('Герой виснажився та припинив роботу в шахті.');
     }
@@ -327,6 +338,8 @@ class Game {
     `;
     menuNav.querySelector('#nav-menu').addEventListener('click', () => this.exitToMenu());
 
+    this.renderAudioButton();
+
     const hudActions = document.getElementById('hud-actions');
     hudActions.innerHTML = `
       <button class="btn btn--icon" id="nav-stats" title="Характеристики" aria-label="Характеристики">${Hud.icon('stats')}</button>
@@ -338,8 +351,21 @@ class Game {
     hudActions.querySelector('#nav-equipment').addEventListener('click', () => this.modals.equipment.open());
   }
 
+  renderAudioButton() {
+    const audioNav = document.getElementById('audio-button');
+    const enabled = this.audio.settings.enabled;
+    audioNav.innerHTML = `
+      <button class="btn btn--icon${enabled ? '' : ' audio-button--muted'}" id="nav-audio"
+              title="Налаштування звуку" aria-label="Налаштування звуку">
+        ${Hud.icon(enabled ? 'volume' : 'volumeOff')}
+      </button>
+    `;
+    audioNav.querySelector('#nav-audio').addEventListener('click', () => this.modals.audio.open());
+  }
+
   setGameNavigationVisible(visible) {
     this.gameNavigationVisible = visible;
+    document.body.classList.toggle('game-navigation-visible', visible);
     document.getElementById('map-button').style.display = visible ? 'flex' : 'none';
     document.getElementById('menu-button').style.display = visible ? 'block' : 'none';
     // Во время боя инвентарь и персонаж тоже недоступны

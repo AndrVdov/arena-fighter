@@ -1,113 +1,193 @@
 /**
  * СОСТАВ АРЕНЫ
  * -------------
- * Три обновляемых ростера по четыре слота и отдельный неограниченный список
- * мести. Пустой слот хранится как null, поэтому его позиция сохраняется.
+ * Каждая трёхуровневая комната хранит четыре независимых ростера и свой
+ * список мести. Регулярные ростеры всех открытых комнат обновляются одним
+ * общим таймером; записи мести сохраняют личные сроки жизни.
  */
 class ArenaLineup {
 
-  constructor(data = {}) {
-    this.rosters = data.rosters
-      ? {
-          common: ArenaLineup.loadSlots(data.rosters.common),
-          champions: ArenaLineup.loadSlots(data.rosters.champions),
-          kings: ArenaLineup.loadSlots(data.rosters.kings),
-        }
-      : ArenaLineup.migrateLegacy(data.enemies ?? []);
+  static REGULAR_ROSTERS = ['rookies', 'common', 'champions', 'kings'];
 
-    this.revenge = (data.revenge ?? []).map(entry => ({
-      enemy: Enemy.fromJSON(entry.enemy ?? entry),
-      expiresAt: entry.expiresAt ?? Date.now() + BALANCE.arena.revengeLifetimeSeconds * 1000,
-    }));
-    this.refreshAt = data.refreshAt ?? 0;
+  constructor(data = {}, playerLevel = 1) {
+    const hasRoomModel = data.rooms && typeof data.rooms === 'object';
+    this.rooms = hasRoomModel
+      ? ArenaLineup.loadRooms(data.rooms)
+      : ArenaLineup.migrateToRooms(data, playerLevel);
+    this.refreshAt = hasRoomModel ? data.refreshAt ?? 0 : 0;
+    this.ensureRooms(playerLevel);
     this.purgeExpiredRevenge();
   }
 
   get isExpired() { return Date.now() >= this.refreshAt; }
   get msLeft() { return Math.max(0, this.refreshAt - Date.now()); }
 
-  getSlots(tabId) {
-    if (tabId === 'revenge') return this.revenge.map(entry => entry.enemy);
-    return this.rosters[tabId] ?? [];
+  static roomIndexForLevel(level) {
+    return Math.floor((Item.normalizeLevel(level) - 1) / BALANCE.arena.levelSegmentSize);
   }
 
-  getEnemy(tabId, index) {
-    return this.getSlots(tabId)[index] ?? null;
+  static roomInfo(index) {
+    const normalizedIndex = Math.max(0, Math.floor(Number(index) || 0));
+    const minimum = normalizedIndex * BALANCE.arena.levelSegmentSize + 1;
+    const maximum = minimum + BALANCE.arena.levelSegmentSize - 1;
+    return {
+      id: `room-${minimum}-${maximum}`,
+      index: normalizedIndex,
+      minimum,
+      maximum,
+      label: `${minimum}–${maximum}`,
+    };
   }
 
-  count(tabId) {
-    return this.getSlots(tabId).filter(Boolean).length;
+  static roomForLevel(level) {
+    return ArenaLineup.roomInfo(ArenaLineup.roomIndexForLevel(level));
   }
 
-  revengeExpiresAt(enemy) {
-    return this.revenge.find(entry => entry.enemy === enemy)?.expiresAt ?? 0;
+  static availableRooms(level) {
+    const currentIndex = ArenaLineup.roomIndexForLevel(level);
+    return Array.from({ length: currentIndex + 1 }, (_, index) => ArenaLineup.roomInfo(index));
   }
 
-  /** Одновременно обновить три регулярных раздела. */
+  /** Создать недостающие открытые комнаты, не сдвигая общий таймер. */
+  ensureRooms(playerLevel) {
+    let changed = false;
+    for (const info of ArenaLineup.availableRooms(playerLevel)) {
+      if (this.rooms[info.id]) continue;
+      this.rooms[info.id] = ArenaLineup.emptyRoom(info.index);
+      if (!this.isExpired) this.rooms[info.id].rosters = this.rollRoomRosters(info.index);
+      changed = true;
+    }
+    return changed;
+  }
+
+  getRoom(roomId) {
+    return this.rooms[roomId] ?? null;
+  }
+
+  getSlots(roomId, tabId) {
+    const room = this.getRoom(roomId);
+    if (!room) return [];
+    if (tabId === 'revenge') return room.revenge.map(entry => entry.enemy);
+    return room.rosters[tabId] ?? [];
+  }
+
+  getEnemy(roomId, tabId, index) {
+    return this.getSlots(roomId, tabId)[index] ?? null;
+  }
+
+  count(roomId, tabId) {
+    return this.getSlots(roomId, tabId).filter(Boolean).length;
+  }
+
+  revengeExpiresAt(roomId, enemy) {
+    return this.getRoom(roomId)?.revenge
+      .find(entry => entry.enemy === enemy)?.expiresAt ?? 0;
+  }
+
+  /** Обновить регулярные составы всех открытых комнат одним циклом. */
   refresh(playerLevel) {
-    const cfg = BALANCE.arena;
-    this.rosters.common = this.rollRoster(playerLevel, 'common', 1);
-    this.rosters.champions = this.rollRoster(playerLevel, 'elite', cfg.championSlotChance);
-    this.rosters.kings = this.rollRoster(playerLevel, 'king', cfg.kingSlotChance);
-    this.refreshAt = Date.now() + cfg.refreshSeconds * 1000;
+    this.ensureRooms(playerLevel);
+    for (const room of Object.values(this.rooms)) {
+      room.rosters = this.rollRoomRosters(room.index);
+    }
+    this.refreshAt = Date.now() + BALANCE.arena.refreshSeconds * 1000;
     this.purgeExpiredRevenge();
   }
 
-  rollRoster(playerLevel, eliteId, fillChance) {
-    return Array.from({ length: BALANCE.arena.slotsPerRoster }, (_, index) => {
+  rollRoomRosters(roomIndex) {
+    const cfg = BALANCE.arena;
+    return {
+      rookies: this.rollRoster(roomIndex, 'rookie', 1),
+      common: this.rollRoster(roomIndex, 'common', 1),
+      champions: this.rollRoster(roomIndex, 'elite', cfg.championSlotChance),
+      kings: this.rollRoster(roomIndex, 'king', cfg.kingSlotChance),
+    };
+  }
+
+  rollRoster(roomIndex, eliteId, fillChance) {
+    return Array.from({ length: BALANCE.arena.slotsPerRoster }, () => {
       if (Math.random() >= fillChance) return null;
-      const offsets = BALANCE.enemy.levelOffsets;
-      const offset = offsets[index % offsets.length];
-      return Enemy.random(Math.max(1, playerLevel + offset), eliteId);
+      return Enemy.random(ArenaLineup.rollLevelForRoom(roomIndex), eliteId);
     });
+  }
+
+  static rollLevelForRoom(roomIndex, random = Math.random) {
+    const info = ArenaLineup.roomInfo(roomIndex);
+    return info.minimum + Math.floor(random() * BALANCE.arena.levelSegmentSize);
   }
 
   remove(enemy) {
-    for (const roster of Object.values(this.rosters)) {
-      const index = roster.indexOf(enemy);
-      if (index !== -1) roster[index] = null;
+    for (const room of Object.values(this.rooms)) {
+      for (const roster of Object.values(room.rosters)) {
+        const index = roster.indexOf(enemy);
+        if (index !== -1) roster[index] = null;
+      }
+      room.revenge = room.revenge.filter(entry => entry.enemy !== enemy);
     }
-    this.revenge = this.revenge.filter(entry => entry.enemy !== enemy);
   }
 
-  /** Заменить бойца в том же слоте или записи мести. */
+  /** Заменить бойца в его комнате и слоте или записи мести. */
   replace(currentEnemy, updatedEnemy) {
-    for (const roster of Object.values(this.rosters)) {
-      const index = roster.indexOf(currentEnemy);
-      if (index !== -1) {
-        roster[index] = updatedEnemy;
+    for (const room of Object.values(this.rooms)) {
+      for (const roster of Object.values(room.rosters)) {
+        const index = roster.indexOf(currentEnemy);
+        if (index !== -1) {
+          roster[index] = updatedEnemy;
+          return true;
+        }
+      }
+      const revengeEntry = room.revenge.find(entry => entry.enemy === currentEnemy);
+      if (revengeEntry) {
+        revengeEntry.enemy = updatedEnemy;
         return true;
       }
     }
-    const revengeEntry = this.revenge.find(entry => entry.enemy === currentEnemy);
-    if (!revengeEntry) return false;
-    revengeEntry.enemy = updatedEnemy;
-    return true;
+    return false;
   }
 
-  /** Победитель игрока покидает свой ростер и получает новый личный час. */
+  roomIdForEnemy(enemy) {
+    for (const [roomId, room] of Object.entries(this.rooms)) {
+      const inRoster = Object.values(room.rosters).some(roster => roster.includes(enemy));
+      if (inRoster || room.revenge.some(entry => entry.enemy === enemy)) return roomId;
+    }
+    return null;
+  }
+
+  /** Победитель игрока покидает ростер и попадает в месть той же комнаты. */
   moveToRevenge(currentEnemy, updatedEnemy) {
+    const roomId = this.roomIdForEnemy(currentEnemy);
+    if (!roomId) return false;
+
     this.remove(currentEnemy);
     this.remove(updatedEnemy);
-    this.revenge.push({
+    this.rooms[roomId].revenge.push({
       enemy: updatedEnemy,
       expiresAt: Date.now() + BALANCE.arena.revengeLifetimeSeconds * 1000,
     });
+    return true;
   }
 
   purgeExpiredRevenge(now = Date.now()) {
-    const before = this.revenge.length;
-    this.revenge = this.revenge.filter(entry => entry.expiresAt > now);
-    return before - this.revenge.length;
+    let removed = 0;
+    for (const room of Object.values(this.rooms)) {
+      const before = room.revenge.length;
+      room.revenge = room.revenge.filter(entry => entry.expiresAt > now);
+      removed += before - room.revenge.length;
+    }
+    return removed;
   }
 
-  /** Естественная регенерация всех выживших противников арены. */
+  /** Естественная регенерация всех выживших противников во всех комнатах. */
   regenerateEnemies(percentPerTick, now = Date.now()) {
     let changed = false;
-    const regularEnemies = Object.values(this.rosters).flat().filter(Boolean);
-    const revengeEnemies = this.revenge
+    const regularEnemies = Object.values(this.rooms)
+      .flatMap(room => Object.values(room.rosters).flat())
+      .filter(Boolean);
+    const revengeEnemies = Object.values(this.rooms)
+      .flatMap(room => room.revenge)
       .filter(entry => entry.expiresAt > now)
       .map(entry => entry.enemy);
+
     for (const enemy of new Set([...regularEnemies, ...revengeEnemies])) {
       if (enemy.hp >= enemy.maxHp) continue;
 
@@ -124,16 +204,47 @@ class ArenaLineup {
 
   toJSON() {
     return {
-      rosters: Object.fromEntries(Object.entries(this.rosters).map(([id, slots]) => [
-        id,
-        slots.map(enemy => enemy ? enemy.toJSON() : null),
+      rooms: Object.fromEntries(Object.entries(this.rooms).map(([roomId, room]) => [
+        roomId,
+        {
+          index: room.index,
+          rosters: Object.fromEntries(Object.entries(room.rosters).map(([id, slots]) => [
+            id,
+            slots.map(enemy => enemy ? enemy.toJSON() : null),
+          ])),
+          revenge: room.revenge.map(entry => ({
+            enemy: entry.enemy.toJSON(),
+            expiresAt: entry.expiresAt,
+          })),
+        },
       ])),
-      revenge: this.revenge.map(entry => ({
-        enemy: entry.enemy.toJSON(),
-        expiresAt: entry.expiresAt,
-      })),
       refreshAt: this.refreshAt,
     };
+  }
+
+  static emptyRosters() {
+    return Object.fromEntries(ArenaLineup.REGULAR_ROSTERS.map(id => [
+      id,
+      Array(BALANCE.arena.slotsPerRoster).fill(null),
+    ]));
+  }
+
+  static emptyRoom(index) {
+    return { index, rosters: ArenaLineup.emptyRosters(), revenge: [] };
+  }
+
+  static loadRooms(data) {
+    return Object.fromEntries(Object.entries(data).map(([roomId, roomData]) => {
+      const index = Math.max(0, Math.floor(Number(roomData?.index) || 0));
+      return [roomId, {
+        index,
+        rosters: Object.fromEntries(ArenaLineup.REGULAR_ROSTERS.map(id => [
+          id,
+          ArenaLineup.loadSlots(roomData?.rosters?.[id]),
+        ])),
+        revenge: ArenaLineup.loadRevenge(roomData?.revenge),
+      }];
+    }));
   }
 
   static loadSlots(data = []) {
@@ -141,20 +252,19 @@ class ArenaLineup {
       data[index] ? Enemy.fromJSON(data[index]) : null);
   }
 
-  static migrateLegacy(enemies) {
-    const rosters = {
-      common: Array(BALANCE.arena.slotsPerRoster).fill(null),
-      champions: Array(BALANCE.arena.slotsPerRoster).fill(null),
-      kings: Array(BALANCE.arena.slotsPerRoster).fill(null),
-    };
-    const nextIndex = { common: 0, champions: 0, kings: 0 };
+  static loadRevenge(data = []) {
+    return data.map(entry => ({
+      enemy: Enemy.fromJSON(entry.enemy ?? entry),
+      expiresAt: entry.expiresAt
+        ?? Date.now() + BALANCE.arena.revengeLifetimeSeconds * 1000,
+    }));
+  }
 
-    enemies.map(Enemy.fromJSON).forEach(enemy => {
-      const rosterId = enemy.elite.id === 'elite' ? 'champions'
-        : enemy.elite.id === 'king' ? 'kings' : 'common';
-      const index = nextIndex[rosterId]++;
-      if (index < BALANCE.arena.slotsPerRoster) rosters[rosterId][index] = enemy;
-    });
-    return rosters;
+  /** Старый единый список мести переносится в текущую комнату героя. */
+  static migrateToRooms(data, playerLevel) {
+    const info = ArenaLineup.roomForLevel(playerLevel);
+    const room = ArenaLineup.emptyRoom(info.index);
+    room.revenge = ArenaLineup.loadRevenge(data.revenge);
+    return { [info.id]: room };
   }
 }

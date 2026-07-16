@@ -6,6 +6,24 @@
  */
 class Fighter {
 
+  static BUFF_STATS = ['strength', 'agility', 'vitality'];
+
+  /** Оставить только последний действующий эликсир для каждой характеристики. */
+  static normalizeBuffs(buffs = []) {
+    const buffsByStat = new Map();
+
+    for (const buff of buffs) {
+      if (!Fighter.BUFF_STATS.includes(buff?.stat)) continue;
+      const value = Number(buff.value);
+      const fightsLeft = Math.floor(Number(buff.fightsLeft ?? buff.fights));
+      if (!Number.isFinite(value) || value <= 0 || fightsLeft <= 0) continue;
+
+      buffsByStat.delete(buff.stat);
+      buffsByStat.set(buff.stat, { stat: buff.stat, value, fightsLeft });
+    }
+    return [...buffsByStat.values()];
+  }
+
   static healthConditionFor(hp, maxHp) {
     const ratio = maxHp > 0 ? hp / maxHp : 0;
     const conditions = BALANCE.healthConditions;
@@ -42,6 +60,7 @@ class Fighter {
 
   static raceTraitText(race) {
     const parts = Fighter.raceTraitParts(race);
+    if (race?.traitText) parts.push(race.traitText);
     return parts.length ? parts.join(', ') : 'без модифікаторів';
   }
 
@@ -55,17 +74,31 @@ class Fighter {
   }
 
   buffValue(stat) {
-    return this.buffs.filter(buff => buff.stat === stat)
-      .reduce((sum, buff) => sum + buff.value, 0);
+    return this.buffs.find(buff => buff.stat === stat)?.value ?? 0;
   }
 
   addBuff(stat, value, fights) {
-    this.buffs.push({ stat, value, fightsLeft: fights });
+    const [newBuff] = Fighter.normalizeBuffs([{ stat, value, fightsLeft: fights }]);
+    if (!newBuff) return false;
+
+    const previousMaxHp = Number.isFinite(this.hp) ? this.maxHp : null;
+    const wasAtFullHealth = previousMaxHp !== null && this.hp >= previousMaxHp;
+    this.buffs = this.buffs.filter(buff => buff.stat !== stat);
+    this.buffs.push(newBuff);
+
+    if (previousMaxHp !== null) {
+      if (wasAtFullHealth && this.maxHp > previousMaxHp) {
+        this.hp += this.maxHp - previousMaxHp;
+      }
+      this.clampHp();
+    }
+    return true;
   }
 
   spendBuffCharges() {
     this.buffs.forEach(buff => buff.fightsLeft--);
     this.buffs = this.buffs.filter(buff => buff.fightsLeft > 0);
+    if (Number.isFinite(this.hp)) this.clampHp();
   }
 
   statWithGear(stat) {
@@ -78,8 +111,7 @@ class Fighter {
 
   get maxHp() {
     return BALANCE.player.baseHp
-      + this.effectiveVitality * BALANCE.player.hpPerVitality
-      + this.equipmentBonus('maxHp');
+      + this.effectiveVitality * BALANCE.player.hpPerVitality;
   }
 
   get baseAttackDamage() {
@@ -108,6 +140,10 @@ class Fighter {
     return this.healthCondition?.travelMultiplier ?? 1;
   }
 
+  get armor() { return this.equipmentBonus('armor'); }
+  get shieldBlockArmor() { return this.equipmentBonus('blockArmor'); }
+  get shieldBlockChance() { return this.equipmentBonus('blockChance') / 100; }
+
   /** Целое восстановление с накоплением дробной части между тиками. */
   recoveryAmount(baseAmount, channel = 'hp') {
     this._recoveryProgress ??= {};
@@ -121,8 +157,6 @@ class Fighter {
   clearRecoveryProgress(channel) {
     if (this._recoveryProgress) this._recoveryProgress[channel] = 0;
   }
-
-  get dodgeExtra() { return this.equipmentBonus('dodge'); }
 
   clampHp() {
     this.hp = Math.min(this.hp, this.maxHp);
