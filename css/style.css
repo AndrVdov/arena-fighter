@@ -2209,6 +2209,16 @@ body {
   text-shadow: 0 3px 2px #10364d, 0 0 9px #4fbdff, 0 0 20px rgba(72, 176, 244, 0.72);
 }
 
+.fighter__damage-number--dodge {
+  top: 22%;
+  color: #bdeaff;
+  font-size: 27px;
+  font-style: italic;
+  letter-spacing: 2px;
+  text-shadow: 0 3px 2px #12364c, 0 0 10px #54bdeb, 0 0 22px rgba(75, 179, 231, 0.72);
+  animation-name: fighter-dodge-text-float;
+}
+
 @keyframes fighter-damage-float {
   0% { opacity: 0; transform: translate(-50%, 8px) scale(0.7); }
   16% { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
@@ -2221,6 +2231,13 @@ body {
   18% { opacity: 1; transform: translate(-50%, -3px) scale(1.22) rotate(2deg); }
   68% { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, -88px) scale(1.28) rotate(0); }
+}
+
+@keyframes fighter-dodge-text-float {
+  0% { opacity: 0; transform: translate(-50%, 10px) scale(0.72); }
+  18% { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
+  68% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -62px) scale(1.03); }
 }
 
 /* ============================================================
@@ -2281,22 +2298,63 @@ body {
 }
 
 .result-panel {
-  min-width: 340px;
-  max-width: 480px;
+  width: min(560px, calc(100vw - 32px));
+  min-width: 0;
+  padding: 28px 32px 32px;
   text-align: center;
+}
+
+.result-panel__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 0;
+  padding-bottom: 16px;
+}
+
+.result-panel__title-icon {
+  width: 30px;
+  height: 30px;
+  color: var(--gold-light);
+  stroke-width: 1.6;
+}
+
+.result__body {
+  margin: 26px 0 30px;
+}
+
+.result__message {
+  margin: 0 auto;
+  line-height: 1.55;
 }
 
 .result__rewards {
   list-style: none;
   text-align: left;
-  margin-bottom: 16px;
+  margin: 0;
   font-size: 15px;
   line-height: 2;
+}
+
+.result__actions {
+  display: flex;
+  justify-content: center;
 }
 
 .result__levelup {
   color: var(--gold-light);
   font-weight: bold;
+}
+
+@media (max-width: 620px) {
+  .result-panel {
+    padding: 24px 20px 26px;
+  }
+
+  .result__body {
+    margin: 22px 0 26px;
+  }
 }
 
 /* ============================================================
@@ -4388,6 +4446,7 @@ body {
   .fighter__damage-number { top: 25%; font-size: 25px; }
   .fighter__damage-number--crit { font-size: 32px; }
   .fighter__damage-number--block { font-size: 23px; }
+  .fighter__damage-number--dodge { font-size: 20px; }
 
   .battle-feed {
     min-height: 94px;

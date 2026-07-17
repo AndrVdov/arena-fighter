@@ -652,7 +652,8 @@ class ArenaScreen extends LocationScreen {
 
   updateFighterHp(event) {
     if (event.defenderHp === undefined) {
-      // Уворот — встряхнём уклонившегося
+      // Уворот — покажем отдельную подпись и сместим уклонившегося.
+      this.showCombatText(event.defenderSide, 'УХИЛЕННЯ!', 'dodge', false);
       this.flashFighter(event.defenderSide, 'fighter--dodge');
       return;
     }
@@ -686,17 +687,24 @@ class ArenaScreen extends LocationScreen {
 
   showDamageNumber(side, damage, type = 'hit') {
     if (!Number.isFinite(damage) || damage <= 0) return;
+    const kind = ['crit', 'block'].includes(type) ? type : 'hit';
+    this.showCombatText(side, `−${damage}`, kind);
+  }
+
+  showCombatText(side, text, kind, randomOffset = true) {
     const layer = this.container.querySelector(`#fighter-${side} .fighter__damage-layer`);
     if (!layer) return;
 
-    const number = document.createElement('span');
-    const kind = ['crit', 'block'].includes(type) ? type : 'hit';
-    number.className = `fighter__damage-number fighter__damage-number--${kind}`;
-    number.style.setProperty('--damage-x', `${Math.round((Math.random() - 0.5) * 54)}px`);
-    number.textContent = `−${damage}`;
-    layer.appendChild(number);
-    number.addEventListener('animationend', () => number.remove(), { once: true });
-    setTimeout(() => number.remove(), 1200);
+    const label = document.createElement('span');
+    label.className = `fighter__damage-number fighter__damage-number--${kind}`;
+    label.style.setProperty(
+      '--damage-x',
+      randomOffset ? `${Math.round((Math.random() - 0.5) * 54)}px` : '0px'
+    );
+    label.textContent = text;
+    layer.appendChild(label);
+    label.addEventListener('animationend', () => label.remove(), { once: true });
+    setTimeout(() => label.remove(), 1200);
   }
 
   flashFighter(side, cssClass) {
@@ -789,15 +797,21 @@ class ArenaScreen extends LocationScreen {
 
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
+    const resultTitle = playerWon ? 'Перемога!' : 'Поразка';
+    const resultIcon = Hud.icon(playerWon ? 'victory' : 'defeat', 'result-panel__title-icon');
     overlay.innerHTML = `
       <div class="panel result-panel">
-        <div class="panel__title">${playerWon ? '🏆 Перемога!' : rewards.mode === 'training' ? '🏳️ Поразка' : '☠️ Поразка'}</div>
-        ${playerWon
-          ? `<ul class="result__rewards">${rewardLines.join('')}</ul>`
-          : rewards.mode === 'training'
-            ? `<p class="placeholder">Супротивник забрав ${rewards.lostGold} золота. Інвентар і спорядження залишилися при тобі.</p>`
-            : `<p class="placeholder">Супротивник забрав ${rewards.lostGold} золота, ${rewards.lostXp} досвіду поточного рівня, предметів: ${rewards.lostItems.length}, спорядження: ${rewards.lostEquipment.length}. Рівень героя збережено.</p>`}
-        <button class="btn btn--primary" id="result-continue">Продовжити</button>
+        <div class="panel__title result-panel__title">${resultIcon}<span>${resultTitle}</span></div>
+        <div class="result__body">
+          ${playerWon
+            ? `<ul class="result__rewards">${rewardLines.join('')}</ul>`
+            : rewards.mode === 'training'
+              ? `<p class="placeholder result__message">Супротивник забрав ${rewards.lostGold} золота. Інвентар і спорядження залишилися при тобі.</p>`
+              : `<p class="placeholder result__message">Супротивник забрав ${rewards.lostGold} золота, ${rewards.lostXp} досвіду поточного рівня, предметів: ${rewards.lostItems.length}, спорядження: ${rewards.lostEquipment.length}. Рівень героя збережено.</p>`}
+        </div>
+        <div class="result__actions">
+          <button class="btn btn--primary" id="result-continue">Продовжити</button>
+        </div>
       </div>
     `;
 

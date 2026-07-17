@@ -59,10 +59,10 @@ class SleepModal extends ActionModal {
       : 'Відновлення триває, доки герой спить.';
     const sleepRate = this.completed
       ? 'Повністю відновлено'
-      : `+${this.formatRate(sleepPerTick)} за тік у середньому`;
+      : this.recoveryRateText(sleepPerTick);
     const healthRate = this.completed
       ? (player.hp >= player.maxHp ? 'Повністю відновлено' : 'Сон завершено')
-      : `+${this.formatRate(hpPerTick)} HP за тік у середньому`;
+      : this.recoveryRateText(hpPerTick, ' HP');
     const tickStatus = this.completed
       ? 'Відновлення сну завершено'
       : `Відновлення кожні ${BALANCE.regen.intervalMs / 1000} с`;
@@ -107,10 +107,11 @@ class SleepModal extends ActionModal {
     `;
   }
 
-  formatRate(value) {
-    return Number.isInteger(value)
-      ? String(value)
-      : value.toFixed(2).replace(/0$/, '').replace('.', ',');
+  recoveryRateText(value, unit = '') {
+    if (value >= 1) return `+${Math.round(value)}${unit} за тік у середньому`;
+
+    const ticksPerUnit = Math.max(1, Math.round(1 / value));
+    return `+1${unit} кожні ${ticksPerUnit} тіки`;
   }
 
   complete() {

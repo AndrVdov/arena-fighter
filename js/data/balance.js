@@ -65,6 +65,40 @@ const BALANCE = {
     defaultVolumes: { enabled: true, master: 0.75, ambience: 0.42, effects: 0.68 },
     sceneFadeSeconds: 1.1,
     miningPickIntervalMs: [700, 1350],
+    homeScene: {
+      tracks: [
+        { src: 'assets/audio/home-fireplace.ogg', gain: 0.58 },
+        { src: 'assets/audio/home-wind.ogg', gain: 0.055 },
+      ],
+    },
+    riverScene: {
+      tracks: [
+        { src: 'assets/audio/river-stream.mp3', gain: 0.48 },
+      ],
+    },
+    shopScene: {
+      tracks: [
+        { src: 'assets/audio/shop-market.mp3', gain: 0.30 },
+      ],
+    },
+    mineScene: {
+      tracks: [
+        { src: 'assets/audio/mine-tunnel.mp3', gain: 0.34 },
+      ],
+    },
+    arenaScene: {
+      tracks: [
+        { src: 'assets/audio/arena-crowd.mp3', gain: 0.30, battleGain: 0.42 },
+      ],
+    },
+    recordedEffects: {
+      pick: { src: 'assets/audio/pickaxe-hit.mp3', gain: 0.72 },
+    },
+    menuScene: {
+      tracks: [
+        { src: 'assets/audio/arena-crowd.mp3', gain: 0.14 },
+      ],
+    },
   },
 
   // Дебафы от низкого здоровья. Проверяются от более тяжёлого к лёгкому.

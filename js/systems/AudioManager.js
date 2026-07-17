@@ -1,8 +1,8 @@
 /**
  * АУДИОСИСТЕМА
  * ------------
- * Процедурные фоновые сцены и короткие эффекты на Web Audio API.
- * Не требует внешних аудиофайлов; настройки хранятся отдельно от сейвов.
+ * Фоновые сцены и короткие эффекты на Web Audio API. Сцены могут сочетать
+ * процедурные слои и зацикленные записи; настройки хранятся отдельно от сейвов.
  */
 class AudioManager {
 
@@ -24,8 +24,8 @@ class AudioManager {
     this.onSettingsChanged = null;
 
     const unlock = () => this.unlock();
-    document.addEventListener('pointerdown', unlock, { once: true, capture: true });
-    document.addEventListener('keydown', unlock, { once: true, capture: true });
+    document.addEventListener('pointerdown', unlock, { capture: true });
+    document.addEventListener('keydown', unlock, { capture: true });
     document.addEventListener('click', event => {
       if (event.target.closest('button')) this.play('ui');
     });
@@ -64,9 +64,11 @@ class AudioManager {
   async unlock() {
     if (!this.supported) return false;
     if (!this.context) this.createContext();
+    // Запрашиваем воспроизведение синхронно с пользовательским действием,
+    // пока браузер ещё считает его разрешённым.
+    if (!this.switchScene(this.desiredScene)) this.resumeSceneMedia();
     if (this.context.state === 'suspended') await this.context.resume();
     this.applyVolumes();
-    this.switchScene(this.desiredScene);
     return true;
   }
 
@@ -89,6 +91,7 @@ class AudioManager {
     this.setGain(this.masterGain.gain, this.settings.enabled ? this.settings.master : 0, now, duration);
     this.setGain(this.ambienceGain.gain, this.settings.ambience, now, duration);
     this.setGain(this.effectsGain.gain, this.settings.effects, now, duration);
+    this.scene?.media.forEach(track => this.applyMediaVolume(track));
   }
 
   setGain(parameter, value, now, duration = 0) {
@@ -117,10 +120,12 @@ class AudioManager {
   }
 
   switchScene(sceneId) {
-    if (!this.context || this.currentSceneId === sceneId) return;
+    if (!this.context || this.currentSceneId === sceneId) return false;
     this.stopScene();
     this.currentSceneId = sceneId;
     this.scene = this.createScene(sceneId);
+    this.resumeSceneMedia();
+    return true;
   }
 
   createScene(sceneId) {
@@ -128,6 +133,7 @@ class AudioManager {
       id: sceneId,
       bus: this.context.createGain(),
       sources: [],
+      media: [],
       timers: new Set(),
     };
     const now = this.context.currentTime;
@@ -156,10 +162,17 @@ class AudioManager {
     scene.bus.gain.setValueAtTime(scene.bus.gain.value, now);
     scene.bus.gain.linearRampToValueAtTime(0, now + 0.8);
     scene.timers.forEach(timer => clearTimeout(timer));
+    scene.timers.clear();
+    scene.media.forEach(track => this.fadeMedia(track, 0, 800));
     setTimeout(() => {
       scene.sources.forEach(source => {
         try { source.stop(); } catch {}
         try { source.disconnect(); } catch {}
+      });
+      scene.media.forEach(track => {
+        clearInterval(track.fadeTimer);
+        try { track.element.pause(); } catch {}
+        try { track.element.currentTime = 0; } catch {}
       });
       try { scene.bus.disconnect(); } catch {}
     }, 850);
@@ -167,48 +180,30 @@ class AudioManager {
   }
 
   buildHall(scene) {
-    this.loopNoise(scene, 'brown', { gain: 0.08, filter: 'bandpass', frequency: 260, q: 0.45 });
-    this.drone(scene, 58, 0.018);
-    this.recurring(scene, 2200, 4800, () => this.crackle(scene.bus, 0.10));
-    this.recurring(scene, 5000, 9000, () => this.distantImpact(scene.bus, 0.07));
+    BALANCE.audio.menuScene.tracks.forEach(track => this.loopRecording(scene, track));
   }
 
   buildHome(scene) {
-    this.loopNoise(scene, 'brown', { gain: 0.11, filter: 'lowpass', frequency: 620 });
-    this.drone(scene, 72, 0.012);
-    this.recurring(scene, 700, 2100, () => this.crackle(scene.bus, 0.16));
+    BALANCE.audio.homeScene.tracks.forEach(track => this.loopRecording(scene, track));
   }
 
   buildRiver(scene) {
-    this.loopNoise(scene, 'white', { gain: 0.16, filter: 'bandpass', frequency: 1100, q: 0.55 });
-    this.loopNoise(scene, 'brown', { gain: 0.13, filter: 'lowpass', frequency: 520 });
-    this.recurring(scene, 5000, 11000, () => this.bird(scene.bus));
+    BALANCE.audio.riverScene.tracks.forEach(track => this.loopRecording(scene, track));
   }
 
   buildMine(scene) {
-    this.loopNoise(scene, 'brown', { gain: 0.13, filter: 'lowpass', frequency: 230 });
-    this.drone(scene, 48, 0.025);
-    this.recurring(scene, 2600, 6200, () => this.drip(scene.bus));
-    this.recurring(scene, 5500, 10500, () => this.distantImpact(scene.bus, 0.06));
+    BALANCE.audio.mineScene.tracks.forEach(track => this.loopRecording(scene, track));
   }
 
   buildShop(scene) {
-    this.loopNoise(scene, 'brown', { gain: 0.065, filter: 'lowpass', frequency: 550 });
-    this.recurring(scene, 900, 2600, () => this.crackle(scene.bus, 0.09));
-    this.recurring(scene, 4200, 9000, () => this.clink(scene.bus, 0.08));
+    BALANCE.audio.shopScene.tracks.forEach(track => this.loopRecording(scene, track));
   }
 
   buildArena(scene, battle) {
-    this.loopNoise(scene, 'brown', {
-      gain: battle ? 0.18 : 0.13,
-      filter: 'bandpass',
-      frequency: battle ? 430 : 340,
-      q: 0.5,
-    });
-    this.loopNoise(scene, 'white', { gain: battle ? 0.035 : 0.02, filter: 'lowpass', frequency: 950 });
-    this.drone(scene, 64, battle ? 0.018 : 0.012);
-    this.recurring(scene, battle ? 2200 : 4300, battle ? 4600 : 8500,
-      () => this.distantImpact(scene.bus, battle ? 0.10 : 0.065));
+    BALANCE.audio.arenaScene.tracks.forEach(track => this.loopRecording(scene, {
+      src: track.src,
+      gain: battle ? (track.battleGain ?? track.gain) : track.gain,
+    }));
   }
 
   loopNoise(scene, type, { gain, filter, frequency, q = 0.7 }) {
@@ -224,6 +219,47 @@ class AudioManager {
     source.connect(filterNode).connect(gainNode).connect(scene.bus);
     source.start();
     scene.sources.push(source);
+  }
+
+  loopRecording(scene, { src, gain }) {
+    const element = new Audio(src);
+    element.loop = true;
+    element.preload = 'auto';
+    element.volume = 0;
+    element.load();
+    scene.media.push({ element, baseGain: gain, fade: 0, fadeTimer: null });
+  }
+
+  resumeSceneMedia() {
+    this.scene?.media.forEach(track => {
+      const playback = track.element.play();
+      playback?.catch(() => {});
+      this.fadeMedia(track, 1, BALANCE.audio.sceneFadeSeconds * 1000);
+    });
+  }
+
+  applyMediaVolume(track) {
+    const enabled = this.settings.enabled ? 1 : 0;
+    track.element.volume = this.normalizeVolume(
+      enabled * this.settings.master * this.settings.ambience * track.baseGain * track.fade
+    );
+  }
+
+  fadeMedia(track, target, durationMs) {
+    clearInterval(track.fadeTimer);
+    const start = track.fade;
+    const startedAt = performance.now();
+    const update = () => {
+      const progress = Math.min(1, (performance.now() - startedAt) / durationMs);
+      track.fade = start + (target - start) * progress;
+      this.applyMediaVolume(track);
+      if (progress >= 1) {
+        clearInterval(track.fadeTimer);
+        track.fadeTimer = null;
+      }
+    };
+    update();
+    if (track.fade !== target) track.fadeTimer = setInterval(update, 40);
   }
 
   drone(scene, frequency, gain) {
@@ -261,11 +297,11 @@ class AudioManager {
 
   recurring(scene, minimumMs, maximumMs, callback) {
     const schedule = () => {
-      if (this.scene !== scene) return;
       const delay = minimumMs + Math.random() * (maximumMs - minimumMs);
       const timer = setTimeout(() => {
         scene.timers.delete(timer);
-        if (this.scene === scene && this.settings.enabled) callback();
+        if (this.scene !== scene || !this.settings.enabled) return;
+        callback();
         schedule();
       }, delay);
       scene.timers.add(timer);
@@ -317,7 +353,7 @@ class AudioManager {
       eat: () => this.eat(),
       potion: () => this.potion(),
       travel: () => this.whoosh(0.08),
-      pick: () => this.pick(),
+      pick: () => this.playRecording(BALANCE.audio.recordedEffects.pick),
       sleep: () => this.chord([392, 494, 587], 0.045),
     };
     effects[name]?.();
@@ -374,11 +410,6 @@ class AudioManager {
     this.tone(680, 350, 0.18, 0.07, 'triangle');
   }
 
-  pick() {
-    this.noiseBurst(this.effectsGain, { duration: 0.07, gain: 0.12, frequency: 2100, q: 1.6 });
-    this.tone(520 + Math.random() * 120, 190, 0.16, 0.10, 'triangle');
-  }
-
   chord(frequencies, gain) {
     frequencies.forEach((frequency, index) => {
       setTimeout(() => this.tone(frequency, frequency * 0.98, 0.28, gain, 'triangle'), index * 95);
@@ -401,6 +432,15 @@ class AudioManager {
     setTimeout(() => this.tone(520, 1040, 0.13, 0.035, 'sine'), 75);
   }
 
+  playRecording({ src, gain }) {
+    const element = new Audio(src);
+    element.preload = 'auto';
+    element.volume = this.normalizeVolume(
+      this.settings.master * this.settings.effects * gain
+    );
+    element.play().catch(() => {});
+  }
+
   crackle(destination, gain) {
     this.noiseBurst(destination, { duration: 0.035 + Math.random() * 0.045, gain, frequency: 1500, q: 0.55 });
   }
@@ -410,17 +450,4 @@ class AudioManager {
     this.tone(130, 65, 0.15, gain * 0.5, 'triangle', destination);
   }
 
-  drip(destination) {
-    this.tone(1250, 380, 0.22, 0.055, 'sine', destination);
-  }
-
-  bird(destination) {
-    this.tone(1650, 2450, 0.12, 0.025, 'sine', destination);
-    setTimeout(() => this.tone(1850, 2750, 0.10, 0.02, 'sine', destination), 140);
-  }
-
-  clink(destination, gain) {
-    this.tone(1100, 850, 0.18, gain, 'sine', destination);
-    this.tone(1480, 1020, 0.14, gain * 0.65, 'sine', destination);
-  }
 }
