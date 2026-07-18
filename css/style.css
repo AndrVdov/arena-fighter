@@ -29,6 +29,10 @@
   --log-hit:       #d8cdb4;
   --log-crit:      #e05545;
   --log-dodge:     #58b0e0;
+
+  /* Позиция вертикальной группы системных кнопок. */
+  --system-controls-right: max(16px, env(safe-area-inset-right));
+  --system-controls-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -4581,25 +4585,34 @@ body {
 }
 
 /* Системные кнопки в правом нижнем углу: поддержка, меню и звук. */
-#donate-button {
+#donate-button,
+#menu-button,
+#audio-button {
   position: fixed;
-  right: 16px;
-  bottom: 112px;
+  right: var(--system-controls-right);
   z-index: 100;
+}
+
+#donate-button {
+  bottom: calc(var(--system-controls-bottom) + 96px);
 }
 
 #menu-button {
-  position: fixed;
-  right: 16px;
-  bottom: 64px;
-  z-index: 100;
+  bottom: calc(var(--system-controls-bottom) + 48px);
 }
 
 #audio-button {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 100;
+  bottom: var(--system-controls-bottom);
+}
+
+/*
+ * В низком широком окне браузерные элементы управления занимают нижний угол.
+ * Поднимаем всю группу, сохраняя её вертикальный ритм.
+ */
+@media (min-width: 621px) and (max-height: 700px) {
+  :root {
+    --system-controls-bottom: max(56px, calc(env(safe-area-inset-bottom) + 16px));
+  }
 }
 
 .audio-button--muted {
