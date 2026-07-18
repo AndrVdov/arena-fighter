@@ -786,8 +786,13 @@ class ArenaScreen extends LocationScreen {
     if (playerWon) {
       rewardLines.push(`<li>✨ Досвід: +${rewards.xp}</li>`);
       rewardLines.push(`<li>🪙 Золото: +${rewards.gold}</li>`);
-      rewards.items.forEach(item => rewardLines.push(
-        `<li>${ItemRow.html(item, [], '', { playerLevel: this.game.player.level })}</li>`));
+      this.groupRewardItems(rewards.items).forEach(({ item, count }) => rewardLines.push(
+        `<li>${ItemRow.html(
+          item,
+          [],
+          count > 1 ? `×${count}` : '',
+          { playerLevel: this.game.player.level }
+        )}</li>`));
       rewards.equipment.forEach(item => rewardLines.push(
         `<li>${ItemRow.html(item, [], '', { playerLevel: this.game.player.level })}</li>`));
       if (rewards.levelsGained > 0) {
@@ -800,7 +805,7 @@ class ArenaScreen extends LocationScreen {
     const resultTitle = playerWon ? 'Перемога!' : 'Поразка';
     const resultIcon = Hud.icon(playerWon ? 'victory' : 'defeat', 'result-panel__title-icon');
     overlay.innerHTML = `
-      <div class="panel result-panel">
+      <div class="panel result-panel battle-result">
         <div class="panel__title result-panel__title">${resultIcon}<span>${resultTitle}</span></div>
         <div class="result__body">
           ${playerWon
@@ -821,5 +826,35 @@ class ArenaScreen extends LocationScreen {
       if (!playerWon && rewards.mode === 'lethal') this.game.showScreen('home');
       else this.renderSelect();
     });
+  }
+
+  groupRewardItems(items) {
+    const groups = [];
+    const consumableGroups = new Map();
+
+    items.forEach(item => {
+      if (!item.isConsumable) {
+        groups.push({ item, count: 1 });
+        return;
+      }
+
+      const key = JSON.stringify({
+        templateId: item.templateId,
+        name: item.name,
+        level: item.level,
+        rarity: item.rarity,
+        effect: item.effect,
+      });
+      const existing = consumableGroups.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        const group = { item, count: 1 };
+        consumableGroups.set(key, group);
+        groups.push(group);
+      }
+    });
+
+    return groups;
   }
 }

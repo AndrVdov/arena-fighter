@@ -48,4 +48,12 @@ class ActionModal extends Modal {
       </div>
     `;
   }
+
+  /** Человекочитаемая целочисленная скорость постепенного восстановления. */
+  recoveryRateText(value, unit = '') {
+    if (value >= 1) return `+${Math.round(value)}${unit} за тік у середньому`;
+
+    const ticksPerUnit = Math.max(1, Math.round(1 / value));
+    return `+1${unit} кожні ${ticksPerUnit} тіки`;
+  }
 }

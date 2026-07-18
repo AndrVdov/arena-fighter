@@ -106,6 +106,33 @@ class ShopScreen extends LocationScreen {
     gold.classList.add('hud__gold--changed');
   }
 
+  /** Перерисовать магазин, не сбрасывая позицию списков после сделки. */
+  rerenderPreservingScroll() {
+    if (!this.container) return;
+
+    const page = document.scrollingElement;
+    const state = {
+      contentTop: this.container.querySelector('#shop-content')?.scrollTop ?? 0,
+      tabsLeft: this.container.querySelector('.shop-tabs')?.scrollLeft ?? 0,
+      screenTop: this.container.scrollTop,
+      pageTop: page?.scrollTop ?? 0,
+    };
+
+    this.render(this.container);
+
+    const restore = () => {
+      const content = this.container?.querySelector('#shop-content');
+      const tabs = this.container?.querySelector('.shop-tabs');
+      if (content) content.scrollTop = state.contentTop;
+      if (tabs) tabs.scrollLeft = state.tabsLeft;
+      if (this.container) this.container.scrollTop = state.screenTop;
+      if (page) page.scrollTop = state.pageTop;
+    };
+
+    restore();
+    requestAnimationFrame(restore);
+  }
+
   stockBarHtml() {
     const player = this.game.player;
     const rerollCost = ShopStock.rerollCost();
@@ -191,7 +218,7 @@ class ShopScreen extends LocationScreen {
     this.game.toast(`Куплено: ${item.name}`);
     this.game.refresh();
     this.pulseGold();
-    this.render(this.container);
+    this.rerenderPreservingScroll();
   }
 
   /** Мгновенное обновление ассортимента за золото. */
@@ -208,7 +235,7 @@ class ShopScreen extends LocationScreen {
     this.game.toast('Крамар виклав новий товар!');
     this.game.refresh();
     this.pulseGold();
-    this.render(this.container);
+    this.rerenderPreservingScroll();
   }
 
   /** Живой обратный отсчёт до самообновления товара. */
@@ -305,7 +332,7 @@ class ShopScreen extends LocationScreen {
     this.game.toast(`Куплено: ${item.name}`);
     this.game.refresh();
     this.pulseGold();
-    this.render(this.container);
+    this.rerenderPreservingScroll();
   }
 
   // ===== Продажа =====
@@ -359,6 +386,6 @@ class ShopScreen extends LocationScreen {
     this.game.toast(`Продано: ${item.name} (+${item.sellPrice} 🪙)`);
     this.game.refresh();
     this.pulseGold();
-    this.render(this.container);
+    this.rerenderPreservingScroll();
   }
 }

@@ -51,6 +51,7 @@ class Game {
       mine:      new MineModal(this),
       map:       new WorldMapModal(this),
       audio:     new AudioSettingsModal(this),
+      support:   new SupportModal(this),
     };
     this.travel = new TravelOverlay(this);
 
@@ -303,13 +304,12 @@ class Game {
     }, BALANCE.regen.intervalMs);
   }
 
-  /** Автозавершение действий: отдых закрывается, сон показывает результат. */
+  /** Автозавершение действий: отдых и сон показывают итог до подтверждения. */
   finishActionIfDone() {
     const player = this.player;
 
     if (this.activeAction === 'rest' && player.hp >= player.maxHp) {
-      this.openModal?.close();
-      this.toast('Герой відпочив — повний сил!');
+      this.modals.rest.complete();
     } else if (this.activeAction === 'sleep' && player.needs.sleep >= BALANCE.needs.max) {
       this.modals.sleep.complete();
     } else if (this.activeAction === 'mine'
@@ -323,8 +323,7 @@ class Game {
   // ===== Вспомогательный интерфейс =====
 
   /**
-   * Кнопки навигации: карта (правый верхний угол), шестерёнка меню
-   * (левый нижний) и «Персонаж»/«Инвентарь» под панелью героя —
+   * Кнопки навигации: карта, поддержка, выход, звук и действия героя —
    * доступны из любой локации, кроме боя.
    */
   renderNav() {
@@ -332,9 +331,15 @@ class Game {
     mapNav.innerHTML = `<button class="btn btn--nav" id="nav-map">${Hud.icon('map')}<span>Мапа</span></button>`;
     mapNav.querySelector('#nav-map').addEventListener('click', () => this.modals.map.open());
 
+    const donateNav = document.getElementById('donate-button');
+    donateNav.innerHTML = `
+      <button class="btn btn--icon" id="nav-donate" title="Підтримати гру" aria-label="Підтримати гру">${Hud.icon('support')}</button>
+    `;
+    donateNav.querySelector('#nav-donate').addEventListener('click', () => this.modals.support.open());
+
     const menuNav = document.getElementById('menu-button');
     menuNav.innerHTML = `
-      <button class="btn btn--icon" id="nav-menu" title="Вийти в головне меню (Esc)" aria-label="Головне меню">${Hud.icon('menu')}</button>
+      <button class="btn btn--icon" id="nav-menu" title="Вийти в головне меню (Esc)" aria-label="Вийти в головне меню">${Hud.icon('logout')}</button>
     `;
     menuNav.querySelector('#nav-menu').addEventListener('click', () => this.exitToMenu());
 
@@ -367,6 +372,7 @@ class Game {
     this.gameNavigationVisible = visible;
     document.body.classList.toggle('game-navigation-visible', visible);
     document.getElementById('map-button').style.display = visible ? 'flex' : 'none';
+    document.getElementById('donate-button').style.display = visible ? 'block' : 'none';
     document.getElementById('menu-button').style.display = visible ? 'block' : 'none';
     // Во время боя инвентарь и персонаж тоже недоступны
     document.getElementById('hud-actions').style.display = visible ? 'flex' : 'none';

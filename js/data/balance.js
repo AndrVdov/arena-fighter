@@ -27,6 +27,9 @@ const BALANCE = {
     growth: 1.4,
     lethalVictoryMultiplier: 3,
     lethalDefeatLossRate: 0.10,
+    enemyRankMultipliers: {
+      rookie: 1 / 3,
+    },
   },
 
   // Шкалы потребностей (голод / жажда / сон), значения 0..max.

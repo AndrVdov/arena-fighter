@@ -2,8 +2,8 @@
  * ПРОТИВНИК
  * ---------
  * Полноценный персонаж арены: честный запас очков своего уровня, собственные
- * экипировка, инвентарь, золото, HP и временные эффекты. Звание влияет только
- * на стартовое имущество, но никогда не умножает характеристики.
+ * экипировка, инвентарь, золото, HP и временные эффекты. Звание влияет на
+ * стартовое имущество и награду за победу, но не умножает характеристики.
  */
 class Enemy extends Fighter {
 
@@ -120,7 +120,9 @@ class Enemy extends Fighter {
   get title() { return `${this.raceName}${this.elite.id === 'king' ? '-король' : ''}, рів. ${this.level}`; }
   get xpReward() { return BALANCE.enemy.xpBase + this.level * BALANCE.enemy.xpPerLevel; }
   xpRewardFor(mode) {
-    return this.xpReward * (mode === 'lethal' ? BALANCE.xp.lethalVictoryMultiplier : 1);
+    const rankMultiplier = BALANCE.xp.enemyRankMultipliers[this.elite.id] ?? 1;
+    const modeMultiplier = mode === 'lethal' ? BALANCE.xp.lethalVictoryMultiplier : 1;
+    return Math.max(1, Math.round(this.xpReward * rankMultiplier * modeMultiplier));
   }
   get canAcceptChallenge() { return this.hp >= this.maxHp; }
   get challengeStake() { return this.gold; }
