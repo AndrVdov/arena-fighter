@@ -1,35 +1,67 @@
 /**
  * ОКНО ХАРАКТЕРИСТИК
  * ------------------
- * Статы героя с распределением свободных очков, производные
- * показатели и активные эффекты (эликсиры, потребности).
+ * Сводка героя, распределение свободных очков, боевые показатели
+ * и все постоянные и временные эффекты.
  */
 class StatsModal extends Modal {
 
   get title() {
-    return '📜 Характеристики';
+    return `${Hud.icon('stats')}<span>Характеристики</span>`;
+  }
+
+  get panelClass() {
+    return 'stats-modal';
   }
 
   contentHtml() {
-    const p = this.game.player;
+    const player = this.game.player;
+    const safeName = this.escapeHtml(player.name);
+    const safeRaceName = this.escapeHtml(player.race.name);
 
     return `
-      <div class="modal__subtitle">${p.name}, рівень ${p.level}</div>
-      <div class="modal__subtitle">Раса: ${p.race.name}</div>
-      ${p.freeStatPoints > 0 ? `<div class="stat-points">⭐ Вільні очки: ${p.freeStatPoints}</div>` : ''}
+      <header class="stats-hero-summary">
+        <img class="stats-hero-summary__portrait" src="${this.escapeHtml(player.portrait)}"
+             alt="Портрет героя ${safeName}">
+        <div class="stats-hero-summary__identity">
+          <span class="stats-hero-summary__race">${Hud.icon('race')}${safeRaceName}</span>
+          <strong>${safeName}</strong>
+          <span>Рівень ${player.level}</span>
+        </div>
+        <div class="stats-points${player.freeStatPoints > 0 ? ' stats-points--available' : ''}">
+          ${Hud.icon('star')}
+          <span>Вільні очки</span>
+          <b>${player.freeStatPoints}</b>
+        </div>
+      </header>
 
-      ${this.statRow('strength', '💪 Сила', p.strength, p.effectiveStrength)}
-      ${this.statRow('agility', '🏃 Спритність', p.agility, p.effectiveAgility)}
-      ${this.statRow('vitality', '❤️ Життя', p.vitality, p.effectiveVitality)}
+      <div class="stats-dashboard">
+        <section class="stats-section">
+          ${this.sectionTitle('stats', 'Основні характеристики')}
+          <div class="stats-primary-list">
+            ${this.primaryStatCard('strength', 'equipment', 'Сила', player.strength, player.effectiveStrength)}
+            ${this.primaryStatCard('agility', 'rookie', 'Спритність', player.agility, player.effectiveAgility)}
+            ${this.primaryStatCard('vitality', 'heart', 'Життя', player.vitality, player.effectiveVitality)}
+          </div>
+        </section>
 
-      <div class="derived-stats">
-        <span>⚔️ Урон: ${p.attackDamage}</span>
-        <span>🛡️ Броня: ${p.armor}</span>
-        <span>🔰 Блок щитом: ${Math.round(p.shieldBlockChance * 100)}% · −${p.shieldBlockArmor} урону</span>
-        <span>🩸 Макс. HP: ${p.maxHp}</span>
+        <section class="stats-section">
+          ${this.sectionTitle('equipment', 'Бойові параметри')}
+          <div class="stats-combat-grid">
+            ${this.combatStatCard('equipment', 'Урон', player.attackDamage)}
+            ${this.combatStatCard('shield', 'Броня', player.armor)}
+            ${this.combatStatCard(
+              'shield',
+              'Блок щитом',
+              `${Math.round(player.shieldBlockChance * 100)}%`,
+              `−${player.shieldBlockArmor} урону при блоці`
+            )}
+            ${this.combatStatCard('heart', 'Макс. HP', player.maxHp)}
+          </div>
+        </section>
       </div>
 
-      ${this.effectsHtml(p)}
+      ${this.effectsHtml(player)}
     `;
   }
 
@@ -44,34 +76,75 @@ class StatsModal extends Modal {
     });
   }
 
-  /** Строка характеристики: база, действующее значение и кнопка «+». */
-  statRow(stat, label, base, effective) {
+  sectionTitle(icon, label, suffix = '') {
+    return `
+      <h3 class="stats-section__title">
+        ${Hud.icon(icon)}<span>${label}</span>${suffix}
+      </h3>
+    `;
+  }
+
+  primaryStatCard(stat, icon, label, base, effective) {
     const player = this.game.player;
-    const effectiveNote = effective !== base
-      ? ` <span class="stat-effective">(діюча: ${effective})</span>`
-      : '';
+    const isModified = effective !== base;
     const plusButton = player.freeStatPoints > 0
-      ? `<button class="btn btn--small" data-stat="${stat}">+</button>`
+      ? `
+        <button class="stats-primary-card__increase" data-stat="${stat}"
+                aria-label="Підвищити характеристику ${label}" title="Підвищити ${label}">+</button>
+      `
       : '';
 
     return `
-      <div class="stat-row">
-        <span>${label}: <b>${base}</b>${effectiveNote}</span>
+      <article class="stats-primary-card${isModified ? ' stats-primary-card--modified' : ''}">
+        <span class="stats-primary-card__icon">${Hud.icon(icon)}</span>
+        <div class="stats-primary-card__name">
+          <strong>${label}</strong>
+          <span>базове → діюче</span>
+        </div>
+        <div class="stats-primary-card__values" aria-label="Базове значення ${base}, діюче ${effective}">
+          <span>${base}</span><i>→</i><b>${effective}</b>
+        </div>
         ${plusButton}
-      </div>
+      </article>
+    `;
+  }
+
+  combatStatCard(icon, label, value, detail = '') {
+    return `
+      <article class="stats-combat-card">
+        <span class="stats-combat-card__icon">${Hud.icon(icon)}</span>
+        <div>
+          <span>${label}</span>
+          <strong>${value}</strong>
+          ${detail ? `<small>${detail}</small>` : ''}
+        </div>
+      </article>
     `;
   }
 
   /** Все постоянные и временные эффекты героя из общего UI-агрегатора. */
   effectsHtml(player) {
-    const lines = EffectsBar.collectPlayerEffects(player, this.game).map(effect => `
-      <div class="effect effect--${effect.type}" title="${effect.hint}">
-        ${Hud.icon(effect.icon)}<span>${effect.text}</span>
-      </div>
-    `);
+    const effects = EffectsBar.collectPlayerEffects(player, this.game);
+    if (!effects.length) return '';
 
-    return lines.length
-      ? `<div class="effects"><div class="effects__title">Активні ефекти</div>${lines.join('')}</div>`
-      : '';
+    const effectCards = effects.map(effect => `
+      <div class="stats-effect stats-effect--${effect.type}" title="${this.escapeHtml(effect.hint)}">
+        <span class="stats-effect__icon">${Hud.icon(effect.icon)}</span>
+        <span>${this.escapeHtml(effect.text)}</span>
+      </div>
+    `).join('');
+
+    const count = `<span class="stats-section__count">${effects.length}</span>`;
+    return `
+      <section class="stats-section stats-effects">
+        ${this.sectionTitle('elixir', 'Активні ефекти', count)}
+        <div class="stats-effects__grid">${effectCards}</div>
+      </section>
+    `;
+  }
+
+  escapeHtml(value) {
+    const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value ?? '').replace(/[&<>"']/g, character => entities[character]);
   }
 }

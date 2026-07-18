@@ -213,23 +213,48 @@ class InventoryModal extends Modal {
     const item = entry.item;
     const locked = !item.canUseAtLevel(this.game.player.level);
     const slot = item.isEquipment ? EQUIPMENT_SLOTS[item.slot]?.name : null;
+    const availability = this.availability(item);
 
     return `
-      <button class="inventory-card rarity-frame--${item.rarity}${entry.key === this.selectedKey ? ' inventory-card--selected' : ''}${locked ? ' inventory-card--locked' : ''}"
-              data-inventory-select="${item.id}" type="button">
-        ${ItemRow.visual(item, 'inventory-card__icon')}
+      <article class="inventory-card rarity-frame--${item.rarity}${entry.key === this.selectedKey ? ' inventory-card--selected' : ''}${locked ? ' inventory-card--locked' : ''}">
         ${entry.items.length > 1 ? `<b class="inventory-card__count">×${entry.items.length}</b>` : ''}
-        <span class="inventory-card__body">
-          <span class="inventory-card__name rarity--${item.rarity}">${item.name}</span>
-          <span class="inventory-card__meta">
-            ${slot ? `<span>${slot}</span>` : ''}
-            ${item.levelScaled ? `<span>Рів. ${item.level}</span>` : ''}
-            <span class="rarity--${item.rarity}">${item.rarityInfo.name}</span>
+        <button class="inventory-card__select" data-inventory-select="${item.id}" type="button"
+                aria-label="Переглянути властивості: ${item.name}">
+          ${ItemRow.visual(item, 'inventory-card__icon')}
+          <span class="inventory-card__body">
+            <span class="inventory-card__name rarity--${item.rarity}">${item.name}</span>
+            <span class="inventory-card__meta">
+              ${slot ? `<span>${slot}</span>` : ''}
+              ${item.levelScaled ? `<span>Рів. ${item.level}</span>` : ''}
+              <span class="rarity--${item.rarity}">${item.rarityInfo.name}</span>
+            </span>
+            <span class="inventory-card__desc">${item.describe()}</span>
           </span>
-          <span class="inventory-card__desc">${item.describe()}</span>
-        </span>
-        ${locked ? `${Hud.icon('shield', 'inventory-card__lock')}<span class="sr-only">Потрібен рівень ${item.level}</span>` : ''}
-      </button>
+          ${locked ? `${Hud.icon('shield', 'inventory-card__lock')}<span class="sr-only">Потрібен рівень ${item.level}</span>` : ''}
+        </button>
+        ${this.cardActionsHtml(item, availability)}
+      </article>
+    `;
+  }
+
+  cardActionsHtml(item, availability) {
+    return `
+      <div class="inventory-card__actions">
+        ${item.isEquipment ? `
+          <button class="inventory-card__action inventory-card__action--primary"
+                  data-inventory-action="equip" data-inventory-item="${item.id}" type="button"
+                  ${availability.available ? '' : 'disabled'}>Одягти</button>
+        ` : ''}
+        ${item.isConsumable ? `
+          <button class="inventory-card__action inventory-card__action--primary"
+                  data-inventory-action="consume" data-inventory-item="${item.id}" type="button"
+                  ${availability.available ? '' : 'disabled'}>Вжити</button>
+        ` : ''}
+        ${this.game.player.location === 'home' ? `
+          <button class="inventory-card__action" data-inventory-action="to-chest"
+                  data-inventory-item="${item.id}" type="button">До скрині</button>
+        ` : ''}
+      </div>
     `;
   }
 
@@ -276,20 +301,6 @@ class InventoryModal extends Modal {
       <div class="inventory-availability inventory-availability--${availability.available ? 'ready' : 'locked'}">
         ${Hud.icon(availability.available ? 'star' : 'shield')}
         <span>${availability.message}</span>
-      </div>
-
-      <div class="inventory-details__actions">
-        ${item.isEquipment ? `
-          <button class="btn btn--primary" data-inventory-action="equip" data-inventory-item="${item.id}"
-                  ${availability.available ? '' : 'disabled'}>Одягти</button>
-        ` : ''}
-        ${item.isConsumable ? `
-          <button class="btn btn--primary" data-inventory-action="consume" data-inventory-item="${item.id}"
-                  ${availability.available ? '' : 'disabled'}>Вжити</button>
-        ` : ''}
-        ${this.game.player.location === 'home' ? `
-          <button class="btn" data-inventory-action="to-chest" data-inventory-item="${item.id}">До скрині</button>
-        ` : ''}
       </div>
     `;
   }

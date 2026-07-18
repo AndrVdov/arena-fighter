@@ -354,6 +354,10 @@ class Game {
     hudActions.querySelector('#nav-stats').addEventListener('click', () => this.modals.stats.open());
     hudActions.querySelector('#nav-inventory').addEventListener('click', () => this.modals.inventory.open());
     hudActions.querySelector('#nav-equipment').addEventListener('click', () => this.modals.equipment.open());
+
+    document.getElementById('hud').addEventListener('click', event => {
+      if (this.player && event.target.closest('[data-open-stats]')) this.modals.stats.open();
+    });
   }
 
   renderAudioButton() {

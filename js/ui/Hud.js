@@ -68,7 +68,8 @@ class Hud {
     const p = this.player;
 
     this.root.innerHTML = `
-      <div class="hud__portrait-block">
+      <button class="hud__portrait-block" type="button" data-open-stats
+              title="Відкрити характеристики" aria-label="Відкрити характеристики героя ${p.name}">
         <div class="hud__avatar">
           <img src="${p.portrait}" alt="Портрет героя ${p.name}">
         </div>
@@ -78,7 +79,7 @@ class Hud {
             ${Hud.icon('star')}<span>${p.freeStatPoints}</span>
           </div>
         ` : ''}
-      </div>
+      </button>
 
       <div class="hud__info">
         <div class="hud__topline">

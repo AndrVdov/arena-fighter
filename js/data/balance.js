@@ -131,8 +131,8 @@ const BALANCE = {
   mining: {
     baseGoldPerTick: 1,
     strengthPerBonusGold: 10,
-    goldChancePerTick: 0.30,
-    sleepCostPerTick: 4,
+    goldChancePerTick: 0.50,
+    sleepCostPerTick: 3,
   },
 
   // Боевые формулы
